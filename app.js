@@ -116,6 +116,7 @@ function layout() {
   if (!mobile) g.rx = g.lx + g.lw + 26;
   // река личностей: карты нет — слева колонка великих князей, дальше русла во всю ширину; при зуме справа место под плашку человека
   if (pmode() && !mobile) { g.lw = 180; g.rx = g.lx + g.lw + 84; g.rw = W - g.rx - pad - (window.PRIVER?.zoomed() ? 500 : 0); }
+  if (pmode() && mobile) { g.rx = 6; g.rw = W - 12; }
   g.cx = g.rx + g.rw + 26; g.cw = W - g.cx - pad;
   geom = g;
   // ширина и высота карточек

@@ -10,11 +10,19 @@
 <meta property="og:title" content="Река времени · Часть Европы">
 <meta property="og:description" content="«Часть Европы» Б. Акунина одной рекой времени: события, карта, люди и древо Рюриковичей.">
 <meta property="og:image" content="https://shkodnik1917.github.io/reka-vremeni/img/og.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://shkodnik1917.github.io/reka-vremeni/">
+<meta property="og:site_name" content="Река времени">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://shkodnik1917.github.io/reka-vremeni/">
 <meta name="theme-color" content="#16120e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ruslan+Display&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="kin.css">
 <style>
 :root{
@@ -75,6 +83,7 @@ body.rivermin .stage{grid-template-columns:minmax(0,.55fr) minmax(0,1.65fr)}
 /* река личностей (P или клик по имени): та же река, в руслах — люди */
 /* река личностей: карты нет, русла во всю ширину, слева — великие князья с лицами */
 body.pmode .stage{grid-template-columns:minmax(0,1fr)}
+body.pmode .tl{overflow-x:clip}
 body.pmode .mapwrap{position:fixed;left:-200vw;top:0;width:50vw;visibility:hidden} /* не display:none: карте нужен размер */
 body.pmode .card,body.pmode .era,body.pmode #links{visibility:hidden}
 .reign .rf{display:none}
@@ -124,7 +133,6 @@ body.pmode #pbar{display:flex}
 /* зум: родня и связи выбранного — ярко, прочие люди его времени — приглушённо */
 #people.zm .pn:not(.zk),#people.zm .nm:not(.zk){opacity:.45}
 #people.zm .lk:not(.zk){opacity:.4}
-#people.far .lk circle,#people.far .lk text{display:none}#people.far .lk path{opacity:.45}
 body.grab,body.grab *{cursor:grabbing!important;user-select:none}
 body.pmode #tl{cursor:grab}
 #people.zm .kin.zk{stroke-opacity:.9;stroke-width:2}
@@ -227,8 +235,6 @@ body.pmode #pfaces{display:block}
 #loupemap .leaflet-tile-pane{filter:sepia(.45) saturate(.75) brightness(.8) contrast(1.05)}
 .loupe .lx{display:none;position:absolute;right:14px;top:12px;width:26px;height:26px;border-radius:50%;border:1px solid var(--gold2);background:rgba(20,17,13,.92);color:var(--gold2);font:700 16px/22px var(--serif);cursor:pointer;z-index:2;padding:0}
 .loupe.pinned .lx{display:block}
-.loupe .lhint{position:absolute;left:50%;bottom:-22px;transform:translateX(-50%);white-space:nowrap;font:600 10px var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--gold2);text-shadow:0 0 4px #000,0 0 8px #000}
-.loupe.pinned .lhint{display:none}
 /* панель команд */
 .tools{position:absolute;right:12px;bottom:104px;z-index:510;display:flex;flex-direction:column;gap:5px}
 .tools button{position:relative;width:34px;height:34px;border-radius:5px;border:1px solid var(--line);background:rgba(20,17,13,.9);color:var(--gold2);font:700 14px var(--serif);cursor:pointer;padding:0;transition:background .15s,border-color .15s}
@@ -267,10 +273,6 @@ body.maponly #now{display:none}
 .mapcap ol.steps li .sx b{display:inline;font:inherit;font-weight:700;color:var(--gold2)}
 .mapcap{max-height:calc(100% - 140px);overflow:auto}
 /* карточка шага */
-.leaflet-tooltip.stip{width:300px;border-left:3px solid var(--gold2);padding:7px 11px 8px}
-.leaflet-tooltip.stip .sh{font:700 14.5px/1.25 var(--head);color:var(--parch);display:flex;gap:7px;align-items:flex-start}
-.leaflet-tooltip.stip .sh i{flex:none;font:700 11px/18px var(--serif);font-style:normal;width:18px;height:18px;border-radius:50%;background:var(--c);color:#14110d;text-align:center;margin-top:1px}
-.leaflet-tooltip.stip .sx{margin-top:5px;font-size:13.5px;line-height:1.45;color:var(--parch2)}
 .leaflet-tooltip.ttip .tw i{font:700 14px var(--head);font-style:normal;color:var(--gold2)}
 .leaflet-tooltip.ttip .tp{margin-top:6px;padding-top:5px;border-top:1px solid var(--line);color:#ff9c8c}
 .pole{position:absolute;left:0;top:0;width:10px;height:0;border-top:1.5px solid var(--gold2);transform:rotate(-1.5708rad);transform-origin:0 0;pointer-events:none;opacity:.9;filter:drop-shadow(0 0 2px #000)}
@@ -307,7 +309,6 @@ body.maponly #now{display:none}
 .era .rule{height:1px;background:linear-gradient(90deg,transparent,var(--gold) 15%,var(--gold) 85%,transparent);opacity:.5}
 .era h2{font:400 clamp(26px,3vw,40px)/1 var(--vyaz);margin:14px 0 2px;text-align:center;color:var(--parch);text-shadow:0 2px 12px #000}
 .era p{margin:0;text-align:center;font:italic 600 18px var(--head);color:#fff3d8;text-shadow:0 0 6px #000,0 0 14px #000,0 2px 4px #000}
-.colhead{position:absolute;top:0;font:700 12px var(--head);letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
 
 /* now line */
 #now{position:fixed;left:0;height:0;border-top:1px dashed rgba(230,198,90,.55);z-index:60;pointer-events:none;opacity:0;transition:opacity .3s}
@@ -342,7 +343,6 @@ body.maponly #now{display:none}
 .legend.min .body{display:none}
 .legend:not(:hover) .body{display:none}
 .legend:not(:hover){width:auto}
-.legend:not(:hover) .h::after{content:" · наведи";color:var(--muted);letter-spacing:.1em;text-transform:none;font-weight:500}
 .terr{animation:fadein .9s ease both;transition:fill-opacity .25s,stroke-width .25s}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
 .lbl{font:600 13px var(--head);color:#f7ecd2;text-shadow:0 0 4px #000,0 0 8px #000;white-space:nowrap;letter-spacing:.04em;pointer-events:none}
@@ -390,7 +390,7 @@ footer{text-align:center;color:var(--muted);font:italic 14px var(--serif);paddin
     <div id="map"></div>
     <div class="legend" id="legend"></div>
     <div class="mapcap off" id="mapcap"></div>
-    <div class="loupe" id="loupe"><div id="loupemap"></div><button class="lx" title="убрать лупу (Esc)">×</button><div class="lhint">клик — закрепить · колесо — сила</div></div>
+    <div class="loupe" id="loupe"><div id="loupemap"></div><button class="lx" title="убрать лупу (Esc)">×</button></div>
     <div class="tools" id="tools"><button data-k="p" title="река личностей">☷<span>река личностей · P</span></button><button data-k="r" title="узкая река">⇤<span>узкая река · R</span></button><button data-k="t" title="древо рода">⚘<span>древо рода · T</span></button><button data-k="?" title="клавиши">?<span>клавиши</span></button></div>
     <div class="keyhelp" id="keyhelp"><b>Клавиши</b>
       <div><kbd>A</kbd><kbd>D</kbd> или <kbd>←</kbd><kbd>→</kbd> предыдущее / следующее событие</div>
@@ -412,7 +412,7 @@ footer{text-align:center;color:var(--muted);font:italic 14px var(--serif);paddin
 <button id="tocb">☰ оглавление</button>
 <nav id="toc"></nav>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
 <script src="geo.js"></script>
 <script src="river.js"></script>
 <script src="details.js"></script>

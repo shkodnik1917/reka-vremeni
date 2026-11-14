@@ -22,6 +22,7 @@ window.TREE = (() => {
     window.KINTREE.lines(view);
     const top = view.getBoundingClientRect().top + scrollY, foot = document.querySelector(".foot").offsetHeight;
     const h = kt.offsetHeight, w = kt.scrollWidth, availH = innerHeight - top - foot - 30, availW = view.clientWidth - 40;
+    if (innerWidth < 700) { const me = kt.querySelector(".ktn.self"); if (me) { const r = me.getBoundingClientRect(), v = view.getBoundingClientRect(); view.scrollLeft += r.left + r.width / 2 - v.left - v.width / 2; } return; } // телефон: древо листается вбок, без сжатия
     const k = Math.min(1, availH / h, availW / w);
     if (k < 1) { kt.style.transform = `scale(${k})`; kt.style.transformOrigin = "50% 0"; kt.style.marginBottom = (h * k - h) + "px"; }
   }
@@ -38,6 +39,6 @@ window.TREE = (() => {
   addEventListener("resize", draw);
   addEventListener("hashchange", () => { const id = location.hash.slice(1); if (P[id] && id !== cur) focus(id); });
 
-  setTimeout(() => focus(P[location.hash.slice(1)] ? location.hash.slice(1) : "yaroslav_mudry"), 0);
+  setTimeout(() => { const id = P[location.hash.slice(1)] ? location.hash.slice(1) : "yaroslav_mudry"; innerWidth < 700 ? mark(id) : focus(id); }, 0);
   return {focus, mark: id => mark(id)};
 })();
