@@ -1,0 +1,82 @@
+/* Общее для реки и древа: кликабельные имена и карточка человека. */
+a.pp,.pp{cursor:pointer;color:inherit;text-decoration:none;border-bottom:1px dotted color-mix(in srgb,var(--b,var(--gold2)) 40%,transparent);transition:color .15s,background .15s}
+a.pp:hover,.pp:hover{color:#fff;background:color-mix(in srgb,var(--b,var(--gold2)) 22%,transparent)}
+a.chip{display:inline-block;font:600 12.5px var(--serif);border:0;border-left:3px solid var(--b);background:rgba(255,255,255,.04);padding:1px 7px 1px 6px;border-radius:0 3px 3px 0;margin:0 4px 4px 0;white-space:nowrap}
+#card{position:fixed;left:14px;top:14px;z-index:3100;width:min(370px,calc(100vw - 28px));max-height:calc(100vh - 28px);overflow:auto;background:#16120e;border:1px solid #5a4a32;border-radius:6px;box-shadow:0 14px 50px rgba(0,0,0,.6);
+  opacity:0;transform:translateX(-14px);pointer-events:none;transition:opacity .22s,transform .22s;font:13.5px/1.45 var(--serif);color:var(--parch2)}
+#card.on{opacity:1;transform:none;pointer-events:auto}
+#card .ch{padding:14px 16px 10px;border-top:4px solid var(--b);background:linear-gradient(180deg,color-mix(in srgb,var(--b) 16%,transparent),transparent);position:relative}
+#card .cbtn{position:absolute;right:8px;top:8px;display:flex;gap:2px}
+#card .cbtn button{width:26px;height:26px;border:0;background:none;color:var(--muted);font:17px var(--serif);cursor:pointer;border-radius:3px}
+#card .cbtn button:hover{color:var(--gold2);background:rgba(255,255,255,.06)}
+#card .cbr{font:700 10px var(--head);letter-spacing:.2em;text-transform:uppercase;color:var(--b)}
+#card h3{margin:2px 60px 0 0;font:700 25px/1.1 var(--head);color:var(--parch)}
+#card .cy{font:400 14px var(--vyaz);color:var(--red2);margin-top:3px}
+#card .cd{font-style:italic;color:var(--parch2);margin-top:5px}
+#card .bio{margin:0;padding:10px 16px 4px;color:var(--parch)}
+#card .csec{padding:8px 16px 4px;border-top:1px solid var(--line);margin-top:6px}
+#card h4{margin:0 0 6px;font:700 10px var(--head);letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+#card .cact{padding:8px 16px 14px}
+#card .cact button{font:700 11px var(--head);letter-spacing:.18em;text-transform:uppercase;color:var(--gold2);background:none;border:1px solid var(--gold);border-radius:3px;padding:5px 12px;cursor:pointer}
+#card .cact button:hover{background:rgba(201,162,39,.15)}
+#card .cact a.tbtn{display:inline-block;font:700 11px var(--head);letter-spacing:.18em;text-transform:uppercase;color:var(--gold2);text-decoration:none;border:1px solid var(--gold);border-radius:3px;padding:5px 12px}
+#card .cact a.tbtn:hover{background:rgba(201,162,39,.15)}
+
+#card .ch.hasimg{padding-left:96px;min-height:104px}
+#card .cimg{position:absolute;left:14px;top:14px;width:68px;height:82px;border-radius:34px 34px 5px 5px;overflow:hidden;border:2px solid var(--gold);box-shadow:0 0 0 2px #16120e,0 0 0 4px var(--b);background:radial-gradient(ellipse at 50% 30%,#3a2e20,#17120d 75%)}
+#card .seats{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12.5px;color:var(--muted)}#card .seats b{color:var(--parch2);font-weight:600}
+#card .ktbox{padding:10px 8px 6px}
+/* карточка: сверху сведения стоят на месте, снизу древо листается само по себе */
+#card.on{display:flex;flex-direction:column;overflow:hidden}
+#card .cinfo{flex:0 1 auto;overflow:auto;max-height:52%;min-height:120px}
+#card .ktbox{flex:1 1 auto;overflow:auto;min-height:140px;border-top:1px solid var(--line);margin:0;overscroll-behavior:contain}
+/* лицо: портрет или силуэт, одна тонировка на всех */
+.kf img,.cimg img,.pf img,.rf img{width:100%;height:100%;object-fit:cover;display:block;filter:grayscale(1) sepia(.55) contrast(1.08) brightness(.95)}
+.sil{width:100%;height:100%;display:block}
+.sil .s1{fill:#7a6142}.sil .s2{fill:#a88b62}.sil .s3{fill:#5a4630}.sil .sx{stroke:#e6c65a;stroke-width:2;fill:none}
+/* древо вокруг человека */
+/* одно поколение — одна строка, без переносов; не влезает — древо прокручивается вбок */
+.kt{position:relative;display:flex;flex-direction:column;align-items:center;gap:20px;padding:4px 12px 8px;width:max-content;min-width:100%;box-sizing:border-box}
+.ktl{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.ktl path{fill:none;stroke:#8a7650;stroke-width:1.5}
+.ktl path.bro{stroke:#4a3f2c}
+.ktr{position:relative;display:flex;flex-wrap:nowrap;justify-content:center;align-items:flex-start;gap:12px 6px}
+.ktn{position:relative;width:66px;display:flex;flex-direction:column;align-items:center;text-align:center;cursor:pointer;color:var(--parch2);text-decoration:none;border:0!important;background:none!important}
+.ktn .kf{width:40px;height:48px;border-radius:20px 20px 4px 4px;overflow:hidden;border:1.5px solid var(--b);background:radial-gradient(ellipse at 50% 30%,#3a2e20,#17120d 75%);box-shadow:0 0 0 2px #16120e;transition:transform .15s,box-shadow .15s}
+.ktn.kv .kf{border-color:var(--gold2);box-shadow:0 0 0 2px #16120e,0 0 0 3px var(--b)}
+.ktn b{font:600 11px/1.15 var(--serif);margin-top:4px}
+.ktn i{font:10px var(--vyaz);font-style:normal;color:var(--red2);margin-top:1px}
+.ktn em{font:italic 10.5px var(--serif);color:var(--muted)}
+.ktn.bro{opacity:.55}.ktn.bro:hover{opacity:1}
+.ktn:hover .kf{transform:translateY(-2px);box-shadow:0 0 0 2px #16120e,0 0 12px var(--b)}
+.ktn:hover b{color:#fff}
+.ktn.sm{opacity:.82}
+.ktn.self{width:86px;opacity:1}
+.ktn.self .kf{width:58px;height:70px;border-radius:29px 29px 5px 5px;border-width:2px;box-shadow:0 0 0 2px #16120e,0 0 16px var(--b)}
+.ktn.self b{font-size:12.5px;color:#fff}
+.ktm{align-self:center;color:var(--muted);font-size:14px;margin-top:-18px}
+.ktup{font:italic 12px var(--serif);color:var(--muted);cursor:pointer;border:0!important}
+.ktup:hover{color:var(--gold2)}
+/* крупно — страница древа */
+.kt.big{gap:30px}
+.kt.big .ktn{width:96px}
+.kt.big .ktn .kf{width:62px;height:76px;border-radius:31px 31px 5px 5px}
+.kt.big .ktn b{font-size:13px}.kt.big .ktn i{font-size:11.5px}
+.kt.big .ktn.self{width:130px}
+.kt.big .ktn.self .kf{width:96px;height:116px;border-radius:48px 48px 6px 6px;border-width:2.5px}
+.kt.big .ktn.self b{font:700 18px/1.1 var(--head)}
+.kt.big .ktr{gap:18px 10px}
+.ktc{display:flex;flex-direction:column;align-items:center;gap:6px}
+.ktc.has{padding-bottom:4px}
+.kt.big .ktc{width:106px;align-items:stretch}
+.kt.big .ktc>.ktn:first-child{align-self:center}
+.kt .ktn.gk{flex-direction:row;width:100%;gap:5px;text-align:left;opacity:.85;align-items:center;padding-left:6px;border-left:1px solid color-mix(in srgb,var(--b) 50%,transparent)!important}
+.kt .ktn.gk .kf{width:22px;height:26px;border-radius:11px 11px 3px 3px;flex:none;border-width:1px}
+.kt .ktn.gk b{margin:0;font-size:11px;line-height:1.15}.ktn.gk i{display:none}
+#card .why{margin:0;padding:10px 16px 0;color:var(--parch)}#card .why i{display:block;font:700 10px var(--head);letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-style:normal;margin-bottom:3px}
+
+/* короткая справка о человеке при наведении */
+#htip{position:fixed;z-index:3200;max-width:320px;background:rgba(20,17,13,.97);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:4px;padding:8px 11px;font:13px/1.45 var(--serif);color:var(--parch2);pointer-events:none;opacity:0;transition:opacity .12s}
+#htip.on{opacity:1}
+#htip b{display:block;font:700 16px var(--head);color:var(--parch)}
+#htip .k{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}

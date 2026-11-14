@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Древо Рюриковичей</title>
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/icon180.png">
+<meta name="description" content="«Часть Европы» Б. Акунина одной рекой времени: события, карта, люди и древо Рюриковичей.">
+<meta property="og:title" content="Древо Рюриковичей">
+<meta property="og:description" content="«Часть Европы» Б. Акунина одной рекой времени: события, карта, люди и древо Рюриковичей.">
+<meta property="og:image" content="https://shkodnik1917.github.io/reka-vremeni/img/og.png">
+<meta name="theme-color" content="#16120e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ruslan+Display&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kin.css">
+<style>
+:root{
+  --ink:#14110d; --parch:#efe3c8; --parch2:#d9c9a5; --muted:#a8987a;
+  --red:#b3261e; --red2:#d8452f; --gold:#c9a227; --gold2:#e6c65a; --line:#3a3226;
+  --serif:"PT Serif",Georgia,serif; --head:"Cormorant Garamond",Georgia,serif; --vyaz:"Ruslan Display","Cormorant Garamond",serif;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#110e0b radial-gradient(ellipse at 50% 0%,#2a2016 0,transparent 60%) fixed;color:var(--parch);font:15px/1.45 var(--serif)}
+header{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 18px 8px;background:rgba(17,14,11,.96);border-bottom:1px solid var(--line)}
+header h1{margin:0;font:400 26px var(--vyaz);color:var(--parch)}
+header .sp{flex:1}
+#q{width:220px;background:#0d0b08;border:1px solid var(--line);color:var(--parch);font:14px var(--serif);padding:6px 10px;border-radius:4px}
+#q:focus{outline:none;border-color:var(--gold)}
+a.back{font:700 11px var(--head);letter-spacing:.18em;text-transform:uppercase;color:var(--gold2);text-decoration:none;border:1px solid var(--line);border-radius:4px;padding:6px 10px}
+a.back:hover{border-color:var(--gold2)}
+#view{max-width:1100px;margin:0 auto;padding:18px 20px 8px}
+body.carded #view{padding-left:400px;max-width:1500px}
+#view.in .ktr{animation:rise .35s ease both}
+#view.in .ktr.me{animation-delay:.05s}#view.in .ktr.dn{animation-delay:.1s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+#card .ktbox{display:none}#card .cinfo{max-height:none}
+.foot{text-align:center;font:italic 12px var(--serif);color:var(--muted);padding:0 0 8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Древо Рюриковичей</h1>
+  <span class="sp"></span>
+  <input id="q" list="names" placeholder="найти: Ольга, Мономах…"><datalist id="names"></datalist>
+  <a class="back" href="index.html" target="kin-river">← к реке</a>
+</header>
+<div id="view"></div>
+<div class="foot">портреты — «Царский титулярник», 1672</div>
+<div id="card"></div>
+<script src="people.js"></script>
+<script src="persons.js"></script>
+<script src="portraits.js"></script>
+<script src="fame.js"></script>
+<script src="kintree.js"></script>
+<script src="card.js"></script>
+<script src="tree.js"></script>
+</body>
+</html>

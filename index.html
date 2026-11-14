@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Река времени · Часть Европы</title>
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/icon180.png">
+<meta name="description" content="«Часть Европы» Б. Акунина одной рекой времени: события, карта, люди и древо Рюриковичей.">
+<meta property="og:title" content="Река времени · Часть Европы">
+<meta property="og:description" content="«Часть Европы» Б. Акунина одной рекой времени: события, карта, люди и древо Рюриковичей.">
+<meta property="og:image" content="https://shkodnik1917.github.io/reka-vremeni/img/og.png">
+<meta name="theme-color" content="#16120e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ruslan+Display&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="kin.css">
+<style>
+:root{
+  --ink:#14110d; --ink2:#1d1914; --parch:#efe3c8; --parch2:#d9c9a5; --muted:#a8987a;
+  --red:#b3261e; --red2:#d8452f; --gold:#c9a227; --gold2:#e6c65a; --line:#3a3226;
+  --serif:"PT Serif",Georgia,serif; --head:"Cormorant Garamond",Georgia,serif; --vyaz:"Ruslan Display","Cormorant Garamond",serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--parch);font:16px/1.5 var(--serif);
+  background-image:radial-gradient(ellipse at 30% 0%,#2a2016 0,transparent 55%)}
+#progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--red),var(--gold));z-index:1000;width:0}
+
+
+/* люди: кликабельное имя, карточка, древо, особые слои */
+.mapcap .ctx a.pp{font:inherit;color:inherit;border-bottom:1px solid color-mix(in srgb,var(--b) 70%,transparent)}
+.reign b.pp{pointer-events:auto;border:0;display:inline-block}
+.reign b.pp:hover{color:var(--gold2);background:none}
+.seat{pointer-events:auto!important;cursor:pointer}.seat:hover{background:rgba(60,48,30,.95);color:#fff}
+.who a.pp{border-bottom-color:rgba(230,198,90,.5)}
+#mapruler b.pp{pointer-events:auto;border-bottom:1px dotted var(--gold2)}
+.pring{position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;border:3px solid var(--b);box-shadow:0 0 0 2px #14110d,0 0 18px var(--b);animation:pring 1.6s ease-out infinite alternate}
+.pring span{position:absolute;left:30px;top:-18px;white-space:nowrap;font:700 12px var(--serif);color:#fff;background:rgba(20,17,13,.9);border-left:3px solid var(--b);padding:1px 6px}
+@keyframes pring{to{box-shadow:0 0 0 2px #14110d,0 0 4px var(--b)}}
+body.help #fxbox{display:none}
+#map.fxon path.terr{fill-opacity:.04!important;stroke-opacity:.35}
+.fxland{transition:fill-opacity .3s}
+.fxpt{position:absolute;left:0;top:0;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;white-space:nowrap;animation:fxin .5s both}
+.fxpt i{font-style:normal;font-size:17px;filter:drop-shadow(0 0 6px var(--c))}
+.fxpt.dot i,.fxpt.cross i,.fxpt.star i{color:var(--c);font-size:15px}
+.fxpt span{font:700 11px var(--serif);color:#fff;background:rgba(20,17,13,.82);border-left:2px solid var(--c);padding:0 5px;transform:translateX(4px)}
+#map.zlo .fxpt span{display:none}
+@keyframes fxin{from{opacity:0;transform:translate(-50%,-50%) scale(2.4)}}
+
+/* hero: титул поверх реки, уходит от первого движения */
+.hero{position:fixed;inset:0;z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;overflow:hidden;background:var(--bg);transition:opacity .7s,transform .7s;cursor:pointer}
+.hero.gone{opacity:0;transform:translateY(-40px);pointer-events:none}
+.hero::before{content:"";position:absolute;inset:-40px;background:url(img/eu_cover.jpg) center/cover;filter:blur(20px) brightness(.25) sepia(.5)}
+.hero>*{position:relative}
+.kicker{font:600 14px var(--head);letter-spacing:.35em;text-transform:uppercase;color:var(--gold)}
+.hero h1{font:400 clamp(50px,9vw,128px)/1 var(--vyaz);margin:.25em 0 .15em;text-shadow:0 0 40px rgba(179,38,30,.45)}
+.hero .sub{font:italic 500 clamp(19px,2.2vw,27px) var(--head);color:var(--parch2);max-width:780px}
+.scrollhint{margin-top:54px;font:500 30px var(--head);color:var(--gold2);animation:bob 2s infinite}
+@keyframes bob{50%{transform:translateY(8px)}}
+/* оглавление */
+#tocb{position:fixed;left:14px;bottom:14px;z-index:900;font:600 12px var(--head);letter-spacing:.14em;text-transform:uppercase;color:var(--gold2);background:rgba(20,17,13,.94);border:1px solid var(--line);border-radius:18px;padding:7px 15px;cursor:pointer;transition:border-color .15s}
+#tocb:hover,#tocb.on{border-color:var(--gold2)}
+#toc{position:fixed;left:14px;bottom:56px;z-index:900;width:min(380px,calc(100vw - 28px));max-height:calc(100vh - 90px);overflow:auto;background:#16120e;border:1px solid var(--line);border-radius:8px;padding:8px 0 10px;box-shadow:0 10px 40px rgba(0,0,0,.6);display:none;overscroll-behavior:contain}
+#toc.on{display:block}
+#toc .te{display:block;font:600 15px var(--head);color:var(--gold);padding:10px 16px 3px;cursor:pointer}
+#toc .te small{display:block;font:italic 12.5px var(--serif);color:var(--muted)}
+#toc .tv{display:flex;gap:10px;font:14px/1.3 var(--serif);color:var(--parch2);padding:3px 16px 3px 26px;cursor:pointer}
+#toc .tv span{flex:none;width:96px;color:var(--muted);font-size:12.5px;padding-top:1px}
+#toc .te:hover,#toc .tv:hover{background:rgba(230,198,90,.1);color:var(--gold2)}
+
+/* stage */
+.stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+body.rivermin .stage{grid-template-columns:minmax(0,.55fr) minmax(0,1.65fr)}
+/* река личностей (P или клик по имени): та же река, в руслах — люди */
+/* река личностей: карты нет, русла во всю ширину, слева — великие князья с лицами */
+body.pmode .stage{grid-template-columns:minmax(0,1fr)}
+body.pmode .mapwrap{position:fixed;left:-200vw;top:0;width:50vw;visibility:hidden} /* не display:none: карте нужен размер */
+body.pmode .card,body.pmode .era,body.pmode #links{visibility:hidden}
+.reign .rf{display:none}
+body.pmode .reign .rl{display:grid;grid-template-columns:40px 1fr;column-gap:9px;align-items:start}
+body.pmode .reign .rf{display:block;grid-row:span 3;width:40px;height:48px;border-radius:20px 20px 4px 4px;overflow:hidden;border:1.5px solid var(--gold);background:radial-gradient(ellipse at 50% 30%,#3a2e20,#17120d 75%)}
+body.pmode .reign.short .rf{display:none}body.pmode .reign.short .rl{display:flex}
+body.pmode .reign b{font-size:15px}
+body.pmode .stream{opacity:.34}body.pmode .flow{display:none}body.pmode .slabel{opacity:.5}
+body.pmode .era h2,body.pmode .era p{opacity:.12}
+#card{width:min(450px,calc(100vw - 28px))}#card.on{height:calc(100vh - 28px)}
+#pcol{position:absolute;z-index:6;display:none}
+#pcol #card{position:sticky;top:78px;left:auto;width:100%;height:calc(100vh - 96px);max-height:none;transform:none}
+#people{position:absolute;top:0;left:0;overflow:visible;display:none;z-index:3}
+body.pmode #people{display:block}
+#pbar{display:none;position:sticky;top:0;z-index:8;align-items:center;flex-wrap:wrap;gap:4px 12px;padding:8px 14px;background:linear-gradient(180deg,rgba(17,14,11,.97) 75%,rgba(17,14,11,0));font:italic 12.5px var(--serif);color:var(--muted)}
+body.pmode #pbar{display:flex}
+#pbar b{font:400 20px var(--vyaz);color:var(--parch);font-style:normal}
+#pbar span{flex:1;min-width:200px}
+#pbar .lanes{position:relative;flex-basis:100%;height:18px;margin:2px -14px 0}
+#pbar .lanes i{position:absolute;top:0;font:700 9.5px/18px var(--head);font-style:normal;letter-spacing:.12em;text-transform:uppercase;color:#fff6e0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:clip;border-bottom:2px solid var(--c);background:color-mix(in srgb,var(--c) 22%,transparent)}
+#pbar a{font:700 10.5px var(--head);font-style:normal;letter-spacing:.16em;text-transform:uppercase;color:var(--gold2);border:1px solid var(--line);border-radius:3px;padding:4px 9px;cursor:pointer;background:#0f0c09}
+#pbar a:hover{border-color:var(--gold2)}
+#people *{transition:opacity .2s}
+#people .life{fill:none;stroke:var(--c);stroke-width:1.3;stroke-opacity:.5}
+#people .seat{fill:none;stroke:var(--c);stroke-width:3;stroke-linecap:round}
+#people .w3 .life{stroke-width:1.8;stroke-opacity:.75}#people .w3 .seat{stroke-width:4.4}
+#people .w1 .seat{stroke-width:2;stroke-opacity:.8}
+#people .kv{fill:none;stroke:rgba(255,226,150,.2);stroke-width:12;stroke-linecap:round}
+#people .crown{font:13px "Apple Symbols","Segoe UI Symbol",sans-serif;fill:#e6c65a;text-anchor:middle;paint-order:stroke;stroke:#100d0a;stroke-width:3px;pointer-events:none}
+#people .w3 .kv{stroke-width:12}
+#people .hit{fill:none;stroke:transparent;stroke-width:12;pointer-events:stroke;cursor:pointer}
+#people .end{fill:var(--c)}
+#people .kin{fill:none;stroke:var(--c);stroke-width:1.2;stroke-opacity:.5}
+#people .sp{stroke:#e6c65a;stroke-width:1.2;stroke-dasharray:2 3;opacity:.7}
+#people .lk{cursor:pointer}
+#people .lk path{fill:none;stroke:var(--c);stroke-width:1.6;opacity:.85}
+#people .lk.t-war path,#people .lk.t-rival path{stroke-dasharray:5 3}
+#people .lk circle{fill:#14110d;stroke:var(--c);stroke-width:1.3}
+#people .lk text{font:10px/1 "Apple Symbols","Segoe UI Symbol",sans-serif;fill:var(--c);text-anchor:middle;pointer-events:none}
+#people .lk:hover circle{fill:var(--c)}#people .lk:hover text{fill:#14110d}
+#people .nm{font:600 11px var(--serif);fill:var(--parch2);paint-order:stroke;stroke:#100d0a;stroke-width:3.5px;cursor:pointer}
+#people .nm.w3,#people .nm.big{font:700 13px var(--serif);fill:#fff6e0}
+#people .nm.rep{font:italic 10.5px var(--serif);fill:var(--muted);stroke-width:3px}
+#people .evm{cursor:pointer}#people .evm rect{fill:rgba(20,17,13,.88);stroke:var(--gold);stroke-width:.8}#people .evm text{font:600 10.5px var(--serif);fill:var(--gold2)}#people .evm:hover rect{fill:var(--gold)}#people .evm:hover text{fill:#14110d}
+#people .ln{font:italic 10px var(--serif);fill:var(--c);paint-order:stroke;stroke:#100d0a;stroke-width:3px;pointer-events:none}
+#people .nm.me{font:700 16px var(--head);fill:#fff;stroke-width:4.5px}
+/* зум: родня и связи выбранного — ярко, прочие люди его времени — приглушённо */
+#people.zm .pn:not(.zk),#people.zm .nm:not(.zk){opacity:.45}
+#people.zm .lk:not(.zk){opacity:.4}
+#people.far .lk circle,#people.far .lk text{display:none}#people.far .lk path{opacity:.45}
+body.grab,body.grab *{cursor:grabbing!important;user-select:none}
+body.pmode #tl{cursor:grab}
+#people.zm .kin.zk{stroke-opacity:.9;stroke-width:2}
+#people.pz,#pfaces.pz{animation:pz .35s ease-out}
+@keyframes pz{from{opacity:0}}
+#pfaces{position:absolute;top:0;left:0;width:0;height:0;z-index:4;display:none}
+body.pmode #pfaces{display:block}
+.pf{position:absolute;width:calc(var(--r)*2);height:calc(var(--r)*2.3);margin:calc(var(--r)*-1.15) 0 0 calc(var(--r)*-1);border-radius:var(--r) var(--r) 4px 4px;overflow:hidden;border:1.5px solid var(--gold);box-shadow:0 0 0 2px #100d0a,0 0 0 3.5px var(--b),0 3px 10px #000;background:radial-gradient(ellipse at 50% 30%,#3a2e20,#17120d 75%);cursor:pointer;transition:transform .15s,opacity .2s}
+.pf:hover{transform:scale(1.12);z-index:2}
+.pf.me{border-width:2px;box-shadow:0 0 0 2px #100d0a,0 0 0 4.5px var(--b),0 0 26px rgba(230,198,90,.45)}
+#pfaces.zm .pf:not(.zk){opacity:.5}
+#people .nm:hover,#people .nm.on{fill:#fff}
+#people.hl>*:not(.on){opacity:.1}
+#people .pn.sel .seat{stroke-width:5.5}#people .pn.sel .life{stroke-opacity:1;stroke-width:2.2}
+#ptip{position:fixed;z-index:3200;max-width:320px;background:rgba(20,17,13,.97);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:4px;padding:8px 11px;font:13px/1.45 var(--serif);color:var(--parch2);pointer-events:none;opacity:0;transition:opacity .12s}
+#ptip.on{opacity:1}
+#ptip b{display:block;font:700 16px var(--head);color:var(--parch)}
+#ptip .k{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+#ptip i{display:block;margin-top:4px;color:var(--gold2);font-size:12px}
+.tl{position:relative}
+.mapwrap{position:sticky;top:0;height:100vh;border-left:1px solid var(--line)}
+#map{position:absolute;inset:0;background:#2b2a24}
+.leaflet-tile-pane{filter:sepia(.45) saturate(.75) brightness(.78) contrast(1.05)}
+
+/* river */
+#river,#links{position:absolute;top:0;left:0;overflow:visible}
+#links{pointer-events:none}
+.stream{cursor:pointer;transition:filter .25s,opacity .25s}
+.stream:hover,.stream.hl{filter:brightness(1.35) saturate(1.2)}
+.edge{fill:none;stroke:rgba(10,8,6,.85);stroke-width:.8;pointer-events:none}
+.flow{fill:none;stroke:rgba(255,245,220,.28);stroke-width:1.4;stroke-dasharray:2 16;animation:flow 3.5s linear infinite;pointer-events:none}
+@keyframes flow{to{stroke-dashoffset:-36}}
+.slabel{font:700 13px var(--head);fill:#fff6e0;letter-spacing:.08em;text-transform:uppercase;pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3px}
+.slabel.small{font-size:11px;letter-spacing:.04em}
+.tick{stroke:rgba(239,227,200,.13);stroke-width:1}
+.ticklbl{font:400 15px var(--vyaz);fill:rgba(239,227,200,.55)}
+.edot{fill:var(--parch);stroke:#1a140d;stroke-width:2;transition:r .25s}
+.edot.f{fill:var(--gold2)}
+.edot.on{r:8;fill:var(--gold2)}
+.link{fill:none;stroke:rgba(239,227,200,.28);stroke-width:1.2}
+.link.f{stroke:rgba(230,198,90,.45);stroke-dasharray:3 4}
+.link.on{stroke:var(--gold2);stroke-width:2}
+.thread{fill:none;stroke:rgba(230,198,90,.35);stroke-width:2;stroke-dasharray:1 7;stroke-linecap:round}
+
+/* cards */
+.card{position:absolute;padding:10px 14px 11px;border-radius:5px;background:rgba(29,25,20,.92);border:1px solid var(--line);cursor:pointer;
+  opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1),border-color .3s,box-shadow .3s}
+.card.in{opacity:1;transform:none}
+.card:hover{border-color:#6a5a40}
+.card.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 10px 40px rgba(0,0,0,.5)}
+.card .d{font:400 15px var(--vyaz);color:var(--red2)}
+.card .t{font:700 19px/1.15 var(--head);color:var(--parch);margin:1px 0 3px}
+.card .x{font-size:14.5px;color:var(--parch2);line-height:1.45}
+.card .m{font:12px var(--serif);color:var(--muted);margin-top:5px}
+.card .m b{color:var(--gold)}
+.card.f{background:linear-gradient(160deg,#efe3c8,#d6c194);color:#2a2014;border-color:#b49c6c}
+.card.f .st{font:600 11px var(--head);letter-spacing:.25em;text-transform:uppercase;color:#fff;background:var(--red);display:inline-block;padding:2px 9px;border-radius:2px}
+.card.f .d{color:#8a2a1a;font-size:13px;margin-left:6px}
+.card.f .t{color:#4a120d}.card.f .x{color:#3a2a18}.card.f .m{color:#7a5a2a}
+.card.f.on{box-shadow:0 0 0 2px var(--gold2),0 10px 40px rgba(0,0,0,.6)}
+.card.f{padding:7px 10px 8px}
+.card.f .st{font-size:9.5px;letter-spacing:.12em;padding:1px 6px}
+.card.f .d{display:block;margin:2px 0 0;font-size:12px}
+.card.f .t{font-size:15.5px}
+.card.f .x,.card.f .m{display:none}
+.card.f.open{z-index:30;width:300px!important}
+.card.f.open .x{display:block}
+.card .hint{font:600 11px var(--head);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:6px;transition:color .2s}
+.card:hover .hint{color:var(--gold2)}
+.card.f .hint{color:#8a6a3a;margin-top:3px}
+.card.f.open .hint::after{content:"▴ свернуть"}
+.card.f .hint::after{content:"▾ открыть"}
+.card:hover{transform:translateY(-2px)}
+/* reigns */
+.reign{position:absolute;z-index:0;pointer-events:none;border-left:2px solid rgba(201,162,39,.35);overflow:clip}
+.reign.short .rl{display:flex;gap:6px;align-items:baseline;white-space:nowrap;margin-top:-3px}
+.reign.short .rl .rc{display:none}
+.reign.short b{font-size:14px}
+.reign::before{content:"";position:absolute;left:0;top:0;width:12px;height:2px;background:var(--gold)}
+.reign .rl{position:sticky;top:calc(42vh + 20px);padding:0 0 0 10px}
+.reign .ry{display:block;font:400 13px var(--vyaz);color:var(--red2)}
+.reign b{display:block;font:700 16px/1.15 var(--head);color:var(--parch)}
+.reign .rc{display:block;font:italic 12.5px var(--serif);color:var(--muted)}
+.card{z-index:2}
+/* scene on map */
+.who{position:absolute;left:0;bottom:10px;transform:translateX(-50%);background:rgba(20,17,13,.9);border-bottom:2px solid var(--gold2);border-radius:3px 3px 0 0;padding:1px 8px 2px;white-space:nowrap;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.6);animation:fadein .5s both;cursor:pointer;transition:background .2s}
+.who:hover{background:rgba(70,55,32,.97)}
+.who b{display:block;font:700 13.5px/1.15 var(--head);color:var(--gold2)}
+.who b small,.who span small{font:600 10px var(--serif);color:var(--parch2);opacity:.8}
+.who span{display:block;font:600 11px/1.2 var(--serif);color:#ff9c8c}
+.who span.only{color:#fff;background:rgba(179,38,30,.9);margin:0 -8px -2px;padding:1px 8px 2px}
+.leaflet-tooltip.ttip .tw{margin-top:5px}
+/* линза под курсором */
+.loupe{position:absolute;z-index:520;width:250px;height:250px;left:0;top:0;pointer-events:none;opacity:0;transform:scale(.6);transition:opacity .18s,transform .18s;cursor:zoom-in}
+.loupe.on{opacity:1;transform:none;pointer-events:auto}
+.loupe:not(.pinned) #loupemap *{pointer-events:none!important}
+.loupe.pinned{cursor:default}
+.loupe.pinned #loupemap{border-color:#fff3d8;box-shadow:0 0 0 4px rgba(230,198,90,.45),0 14px 40px rgba(0,0,0,.7)}
+#loupemap{position:absolute;inset:0;border-radius:50%;overflow:hidden;border:3px solid var(--gold2);box-shadow:0 0 0 4px rgba(0,0,0,.5),0 14px 40px rgba(0,0,0,.7);background:#2b2a24}
+#loupemap .leaflet-tile-pane{filter:sepia(.45) saturate(.75) brightness(.8) contrast(1.05)}
+.loupe .lx{display:none;position:absolute;right:14px;top:12px;width:26px;height:26px;border-radius:50%;border:1px solid var(--gold2);background:rgba(20,17,13,.92);color:var(--gold2);font:700 16px/22px var(--serif);cursor:pointer;z-index:2;padding:0}
+.loupe.pinned .lx{display:block}
+.loupe .lhint{position:absolute;left:50%;bottom:-22px;transform:translateX(-50%);white-space:nowrap;font:600 10px var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--gold2);text-shadow:0 0 4px #000,0 0 8px #000}
+.loupe.pinned .lhint{display:none}
+/* панель команд */
+.tools{position:absolute;right:12px;bottom:104px;z-index:510;display:flex;flex-direction:column;gap:5px}
+.tools button{position:relative;width:34px;height:34px;border-radius:5px;border:1px solid var(--line);background:rgba(20,17,13,.9);color:var(--gold2);font:700 14px var(--serif);cursor:pointer;padding:0;transition:background .15s,border-color .15s}
+.tools button:hover,.tools button.on{border-color:var(--gold2);background:rgba(70,55,32,.95)}
+.tools button span{position:absolute;right:42px;top:50%;transform:translateY(-50%);white-space:nowrap;font:600 11px var(--head);letter-spacing:.12em;text-transform:uppercase;background:rgba(20,17,13,.95);border:1px solid var(--line);color:var(--parch);padding:3px 8px;border-radius:3px;opacity:0;pointer-events:none;transition:opacity .15s}
+.tools button:hover span{opacity:1}
+.keyhelp{position:absolute;right:58px;bottom:104px;z-index:530;width:390px;background:rgba(20,17,13,.97);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:5px;padding:10px 14px;font:13px/1.7 var(--serif);color:var(--parch2);display:none;box-shadow:0 12px 40px rgba(0,0,0,.7)}
+body.help .keyhelp{display:block;animation:fadein .2s}
+.keyhelp b{display:block;font:700 11px var(--head);letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+kbd{display:inline-block;min-width:18px;text-align:center;font:700 11px var(--serif);color:#14110d;background:var(--gold2);border-radius:3px;padding:0 4px;margin-right:3px}
+/* легенда — вместе со справкой «?» */
+body:not(.help) #legend{display:none}
+#legend .body{display:block!important}
+.legend:not(:hover) .h::after{content:""}
+/* плашка эпохи в режиме «только карта» */
+body.maponly .mapyear em{display:block}
+.mapyear em{display:none;margin-top:6px;font:italic 18px var(--head);color:var(--parch);text-shadow:0 1px 8px #000,0 0 3px #000}
+.mapyear em b{font-style:normal;color:var(--gold2)}
+/* связка события с предыдущими */
+.mapcap .ctx{margin:7px 0 2px;padding-top:7px;border-top:1px solid var(--line);font-size:14px;line-height:1.5;color:var(--parch)}
+.mapcap .ctx p{margin:0 0 4px}
+/* родословная слева */
+  padding:10px 14px 12px;box-shadow:0 18px 60px rgba(0,0,0,.7);opacity:0;transform:translateX(-24px);pointer-events:none;transition:opacity .25s,transform .3s}
+/* столы на карте: кто где княжит */
+.seat{position:absolute;left:0;top:0;transform:translate(9px,7px);white-space:nowrap;font:600 11px var(--serif);color:#f2e6cc;background:rgba(20,17,13,.78);border-left:3px solid var(--b);border-radius:0 2px 2px 0;padding:0 5px 1px;pointer-events:none;transition:opacity .3s}
+.seat.dup{opacity:0}
+#map.zlo .seat{display:none}
+/* только карта */
+body.maponly .mapwrap{position:fixed;inset:0;z-index:900;border-left:0}
+body.maponly #now{display:none}
+.mapcap ol.steps li .sx{display:none;grid-column:2/4;font-size:13.5px;line-height:1.5;color:var(--parch2);padding:5px 0 3px;border-top:1px dotted var(--line);margin-top:4px;cursor:text}
+.mapcap ol.steps li.open .sx{display:block;animation:fadein .3s}
+.mapcap ol.steps li .sb{grid-column:2/4;font-size:13px;line-height:1.42;color:var(--parch2);margin-top:2px}
+.mapcap ol.steps li+li{margin-top:2px}
+.mapcap ol.steps li .sx p{margin:0 0 6px}.mapcap ol.steps li .sx p:last-child{margin:0}
+.mapcap ol.steps li .sx b{display:inline;font:inherit;font-weight:700;color:var(--gold2)}
+.mapcap{max-height:calc(100% - 140px);overflow:auto}
+/* карточка шага */
+.leaflet-tooltip.stip{width:300px;border-left:3px solid var(--gold2);padding:7px 11px 8px}
+.leaflet-tooltip.stip .sh{font:700 14.5px/1.25 var(--head);color:var(--parch);display:flex;gap:7px;align-items:flex-start}
+.leaflet-tooltip.stip .sh i{flex:none;font:700 11px/18px var(--serif);font-style:normal;width:18px;height:18px;border-radius:50%;background:var(--c);color:#14110d;text-align:center;margin-top:1px}
+.leaflet-tooltip.stip .sx{margin-top:5px;font-size:13.5px;line-height:1.45;color:var(--parch2)}
+.leaflet-tooltip.ttip .tw i{font:700 14px var(--head);font-style:normal;color:var(--gold2)}
+.leaflet-tooltip.ttip .tp{margin-top:6px;padding-top:5px;border-top:1px solid var(--line);color:#ff9c8c}
+.pole{position:absolute;left:0;top:0;width:10px;height:0;border-top:1.5px solid var(--gold2);transform:rotate(-1.5708rad);transform-origin:0 0;pointer-events:none;opacity:.9;filter:drop-shadow(0 0 2px #000)}
+.stepn{width:20px;height:20px;border-radius:50%;background:var(--c);color:#14110d;font:700 12px/20px var(--serif);text-align:center;border:2px solid #14110d;box-shadow:0 0 6px #000;opacity:0;animation:fadein .4s forwards}
+.route-shadow{opacity:0;animation:fadein .6s forwards}
+.mapcap .cd{display:block;color:var(--muted);font-size:13px}
+.mapcap ol.steps{list-style:none;margin:8px 0 0;padding:6px 0 0;border-top:1px solid var(--line)}
+.mapcap ol.steps li{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:baseline;padding:3px 4px;border-radius:3px;font-size:13.5px;line-height:1.3;color:var(--parch);cursor:default;transition:background .2s}
+.mapcap ol.steps li.sel,.mapcap ol.steps li:hover{background:rgba(230,198,90,.14)}
+.mapcap ol.steps i{font:700 11px/18px var(--serif);font-style:normal;width:18px;height:18px;border-radius:50%;background:var(--c);color:#14110d;text-align:center;align-self:center}
+.mapcap ol.steps em{font:italic 12px var(--serif);color:var(--muted);white-space:nowrap}
+.lbl.city.hov{pointer-events:auto;cursor:pointer}
+.stepn{cursor:pointer;transition:transform .2s}
+#map.stepfocus .route-line:not(.sel),#map.stepfocus .arrowhead:not(.sel){opacity:.12!important}
+#map.stepfocus .route-shadow:not(.sel){opacity:0!important}
+#map.stepfocus .stepn:not(.sel){opacity:.3!important}
+#map .route-line.sel{stroke-width:5.5}
+#map .stepn.sel{transform:scale(1.25);box-shadow:0 0 0 3px rgba(230,198,90,.6),0 0 10px #000}
+.mapcap ol.steps li{cursor:pointer}
+.mapcap ol.steps li.lock{background:rgba(230,198,90,.28);box-shadow:inset 3px 0 0 var(--gold2)}
+.who.full b{font-size:13px}
+.who.full b em{font:italic 11px var(--serif);color:var(--parch2);font-weight:400}
+.leaflet-tooltip.ttip .tr{margin-top:3px;color:var(--muted);font-size:12px}
+.cdot.ctr{width:12px;height:12px;margin:-2px;background:#14110d;border:3px solid var(--gold2);box-shadow:0 0 0 2px rgba(0,0,0,.6),0 0 10px rgba(230,198,90,.6)}
+.lbl.city.ctr{color:var(--gold2);font-weight:700;font-size:14px}
+.terr.threat{animation:threat 1.6s ease-in-out infinite}
+@keyframes threat{50%{stroke-opacity:.35}}
+.lbl.threatlbl{font:700 11px var(--head);letter-spacing:.18em;text-transform:uppercase;color:#ff6a55;transform:translate(-50%,14px)}
+#map.zlo .lbl.city.minor{display:none}
+#map.zlo .lbl.tribe{font-size:11px}
+#map.zlo .lbl:not(.big):not(.city):not(.tribe){font-size:11px}
+#map.zlo .lbl.big{font-size:12.5px}
+.era{position:absolute;left:0;right:0;pointer-events:none}
+.era .rule{height:1px;background:linear-gradient(90deg,transparent,var(--gold) 15%,var(--gold) 85%,transparent);opacity:.5}
+.era h2{font:400 clamp(26px,3vw,40px)/1 var(--vyaz);margin:14px 0 2px;text-align:center;color:var(--parch);text-shadow:0 2px 12px #000}
+.era p{margin:0;text-align:center;font:italic 600 18px var(--head);color:#fff3d8;text-shadow:0 0 6px #000,0 0 14px #000,0 2px 4px #000}
+.colhead{position:absolute;top:0;font:700 12px var(--head);letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+
+/* now line */
+#now{position:fixed;left:0;height:0;border-top:1px dashed rgba(230,198,90,.55);z-index:60;pointer-events:none;opacity:0;transition:opacity .3s}
+#now.hit{border-top:2px solid var(--gold2)}
+#now.hit span{background:var(--gold2);color:#14110d;box-shadow:0 0 0 4px rgba(230,198,90,.3),0 2px 14px #000}
+#now span{transition:background .3s,color .3s,box-shadow .3s;position:absolute;top:-14px;transform:translateX(-100%);font:400 18px var(--vyaz);background:var(--red);color:#fff;padding:2px 10px;border-radius:3px;box-shadow:0 2px 10px #000}
+
+/* tooltip */
+#tip{position:fixed;z-index:3000;pointer-events:none;max-width:320px;background:rgba(20,17,13,.96);border:1px solid var(--line);border-left:3px solid var(--c,var(--gold));
+  padding:9px 13px;border-radius:4px;font:14px/1.45 var(--serif);color:var(--parch2);opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+#tip.on{opacity:1;transform:none}
+#tip b{display:block;font:700 17px var(--head);color:var(--parch)}
+
+/* map overlays */
+.mapyear{position:absolute;left:20px;bottom:16px;z-index:500;font:400 60px/1 var(--vyaz);color:var(--parch);text-shadow:0 2px 18px #000,0 0 3px #000;pointer-events:none}
+.mapyear small{display:block;font:600 12px var(--head);letter-spacing:.25em;color:var(--gold2);text-transform:uppercase;margin-bottom:4px}
+.mapcap{position:absolute;right:12px;top:12px;z-index:500;width:390px;max-width:48%;background:rgba(20,17,13,.9);border:1px solid var(--line);border-left:3px solid var(--c,var(--red));padding:10px 14px;font:14px/1.4 var(--serif);border-radius:3px;transition:opacity .4s,transform .4s}
+.mapcap.off{opacity:0;transform:translateY(-8px)}
+.mapcap b{font:700 17px var(--head);color:var(--gold2);display:block}
+.mapcap .k{font:600 11px var(--head);letter-spacing:.2em;text-transform:uppercase;color:var(--c,var(--red2))}
+.mapcap .r{color:var(--muted);font-size:13px;margin-top:3px}
+.legend{position:absolute;left:12px;top:12px;z-index:500;background:rgba(20,17,13,.88);border:1px solid var(--line);border-radius:4px;font:12px/1.35 var(--serif);width:190px;max-height:52vh;overflow:auto;transition:width .3s}
+.legend .h{font:700 11px var(--head);letter-spacing:.22em;text-transform:uppercase;color:var(--gold);padding:8px 12px 3px}
+.legend .row{padding:2px 10px;cursor:default;display:flex;align-items:center;gap:8px;transition:background .2s}
+.legend .row:hover{background:rgba(230,198,90,.12)}
+.legend .row i{flex:none;width:11px;height:11px;border-radius:2px;opacity:.9;transition:transform .25s}
+.legend .row:hover i{transform:scale(1.35)}
+.legend .row .ln{flex:none;width:20px;height:0;border-top:3px solid}
+.legend .desc{padding:0 12px;max-height:0;overflow:hidden;color:var(--parch2);font-size:12.5px;transition:max-height .35s,padding .35s}
+.legend .desc.on{max-height:120px;padding:4px 12px 8px}
+.legend .tog{float:right;cursor:pointer;color:var(--muted);padding:0 4px}
+.legend.min .body{display:none}
+.legend:not(:hover) .body{display:none}
+.legend:not(:hover){width:auto}
+.legend:not(:hover) .h::after{content:" · наведи";color:var(--muted);letter-spacing:.1em;text-transform:none;font-weight:500}
+.terr{animation:fadein .9s ease both;transition:fill-opacity .25s,stroke-width .25s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.lbl{font:600 13px var(--head);color:#f7ecd2;text-shadow:0 0 4px #000,0 0 8px #000;white-space:nowrap;letter-spacing:.04em;pointer-events:none}
+.lbl.big{font:700 15px var(--head);letter-spacing:.12em;text-transform:uppercase;color:#fff3d8;opacity:.9}
+.lbl.tribe{font:italic 600 13px var(--head);color:#e8d9b6;opacity:.85}
+.lbl.city{font:600 13px var(--serif);color:#fff;transform:translate(8px,-9px)}
+.lbl.city.hot{color:var(--gold2);font-size:15px}
+.cdot{width:8px;height:8px;border-radius:50%;background:#f3e6c6;border:1.5px solid #3b2a17;box-shadow:0 0 4px #000}
+.cdot.hot{background:var(--gold2);width:12px;height:12px;margin:-2px;animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(230,198,90,.8)}70%{box-shadow:0 0 0 16px rgba(230,198,90,0)}100%{box-shadow:0 0 0 0 rgba(230,198,90,0)}}
+.route-line{stroke-dasharray:1 1;stroke-dashoffset:1;animation:draw 2s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.arrowhead{width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:16px solid var(--c);filter:drop-shadow(0 0 3px #000);opacity:0;animation:fadein .4s 1.8s forwards}
+.leaflet-tooltip.ttip{width:280px;background:rgba(20,17,13,.95);border:1px solid var(--line);color:var(--parch2);font:13px/1.4 var(--serif);white-space:normal;box-shadow:0 6px 20px rgba(0,0,0,.6)}
+.leaflet-tooltip.ttip b{font:700 15px var(--head);color:var(--parch);display:block}
+.leaflet-tooltip.ttip::before{display:none}
+.leaflet-control-zoom a{background:#1d1914!important;color:var(--parch)!important;border-color:var(--line)!important}
+.leaflet-control-attribution{background:rgba(20,17,13,.6)!important;color:#7d705a!important;font-size:10px}
+.leaflet-control-attribution a{color:#9c8c6c!important}
+
+footer{text-align:center;color:var(--muted);font:italic 14px var(--serif);padding:30px 20px 50px;border-top:1px solid var(--line)}
+
+@media (max-width:900px){
+  .stage{display:flex;flex-direction:column-reverse}
+  .mapwrap{height:42vh;z-index:50;border-left:0;border-bottom:1px solid var(--line)}
+  .legend{display:none}.mapyear{font-size:36px}.mapcap{max-width:62vw;font-size:12px}
+  .card .t{font-size:17px}.card .x{font-size:13.5px}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<header class="hero">
+  <div class="kicker">Борис Акунин · История Российского государства · Том I</div>
+  <h1>Река времени</h1>
+  <div class="sub">«Часть Европы» и повести «Огненного перста» одной лентой: от скифов до Батыя.</div>
+  <div class="scrollhint">↓</div>
+</header>
+
+<div class="stage">
+  <main class="tl" id="tl">
+    <svg id="river"></svg><svg id="links"></svg>
+  </main>
+  <aside class="mapwrap">
+    <div id="map"></div>
+    <div class="legend" id="legend"></div>
+    <div class="mapcap off" id="mapcap"></div>
+    <div class="loupe" id="loupe"><div id="loupemap"></div><button class="lx" title="убрать лупу (Esc)">×</button><div class="lhint">клик — закрепить · колесо — сила</div></div>
+    <div class="tools" id="tools"><button data-k="p" title="река личностей">☷<span>река личностей · P</span></button><button data-k="r" title="узкая река">⇤<span>узкая река · R</span></button><button data-k="t" title="древо рода">⚘<span>древо рода · T</span></button><button data-k="?" title="клавиши">?<span>клавиши</span></button></div>
+    <div class="keyhelp" id="keyhelp"><b>Клавиши</b>
+      <div><kbd>A</kbd><kbd>D</kbd> или <kbd>←</kbd><kbd>→</kbd> предыдущее / следующее событие</div>
+      <div><kbd>1</kbd>–<kbd>9</kbd> или клик по шагу — подлететь к шагу; ещё раз — назад</div>
+      <div><kbd>P</kbd> река личностей · клик по имени — приблизить этого человека</div>
+      <div><kbd>R</kbd> узкая река — больше места карте</div>
+      <div><kbd>M</kbd> только карта, без реки</div>
+      <div><kbd>T</kbd> древо рода · клик по имени — карточка человека</div>
+      <div><kbd>Esc</kbd> отдалить человека; ещё раз — назад к реке событий</div>
+      <div style="margin-top:4px;color:var(--muted);font-style:italic">колесо над картой — масштаб · границы условны · подписи у столиц — кто там княжит, цвет — ветвь рода; по ним тоже можно кликать</div>
+    </div>
+    <div class="mapyear"><small>год</small><span id="mapyear">—</span><em id="mapruler"></em></div>
+  </aside>
+</div>
+<footer>По книгам Б. Акунина «Часть Европы» и «Огненный перст». Неофициальный пересказ; портреты — «Царский титулярник», 1672.</footer>
+<div id="now"><span></span></div>
+<div id="tip"></div>
+<div id="card"></div>
+<button id="tocb">☰ оглавление</button>
+<nav id="toc"></nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="geo.js"></script>
+<script src="river.js"></script>
+<script src="details.js"></script>
+<script src="cities.js"></script>
+<script src="context.js"></script>
+<script src="scenes_1.js"></script>
+<script src="scenes_2.js"></script>
+<script src="scenes_3.js"></script>
+<script src="people.js"></script>
+<script src="persons.js"></script>
+<script src="map.js"></script>
+<script src="fxdata.js"></script>
+<script src="fx.js"></script>
+<script src="portraits.js"></script>
+<script src="fame.js"></script>
+<script src="links.js"></script>
+<script src="kintree.js"></script>
+<script src="priver.js"></script>
+<script src="card.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
