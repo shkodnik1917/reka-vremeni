@@ -4,6 +4,7 @@
 // Новый том — новые русла и люди в тех же данных: PEOPLE, FAME (важность и «почему»), LINKS (связи).
 window.PRIVER = (() => {
   const U = window.KINUI, P = U.P, esc = U.esc, FAME = window.FAME || {}, LINKS = window.LINKS || [];
+  const {Y0, Y1} = window.RIVER;
   const NS = "http://www.w3.org/2000/svg";
   const tl = document.getElementById("tl");
   let svg = null, bar = null, faces = null, pcol = null, all = false, sel = null, drawn = {}, tip = null;
@@ -18,11 +19,15 @@ window.PRIVER = (() => {
     "Новгород": "nov", "Ладога": "nov", "Псков": "nov", "Изборск": "nov", "Белоозеро": "nov", "Полоцк": "pol", "Минск": "pol",
     "Смоленск": "smo", "Чернигов": "che", "Новгород-Северский": "che", "Курск": "che", "Путивль": "che", "Козельск": "che", "Тмутаракань": "che",
     "Переяславль": "per", "Ростов": "vla", "Суздаль": "vla", "Владимир": "vla", "Переяславль-Залесский": "vla",
-    "Рязань": "rya", "Муром": "rya", "Владимир-Волынский": "gal", "Галич": "gal", "Перемышль": "gal"};
+    "Рязань": "rya", "Муром": "rya", "Владимир-Волынский": "gal", "Галич": "gal", "Перемышль": "gal",
+    "Москва": "moscow", "Серпухов": "moscow", "Углич": "moscow", "Звенигород": "moscow",
+    "Тверь": "tver", "Кострома": "vla", "Вильна": "lithuania", "Троки": "lithuania", "Холм": "gal",
+    "Сарай": "horde", "Сарай-Бату": "horde", "Сарай-Берке": "horde", "Кырк-Ер": "horde", "Казань": "horde", "Каракорум": "mong"};
   const HOME = {"Европа": "EU", "Галич · Волынь": "gal", "Полоцк": "pol", "Новгород": "nov", "Смоленск": "smo", "Киев": "kie", "Чернигов": "che",
-    "Переяславль": "per", "Суздаль": "vla", "Рязань · Муром": "rya", "Степь": "STEPPE", "Византия": "byz"};
-  const STEPPE = ["mong", "polov", "pech", "khaz", "avar", "hun", "sarm", "scyth"];
-  const RUSSUB = new Set(["gal", "pol", "nov", "smo", "kie", "per", "che", "vla", "rya"]);
+    "Переяславль": "per", "Суздаль": "vla", "Рязань · Муром": "rya", "Степь": "STEPPE", "Византия": "byz",
+    "Москва": "moscow", "Тверь": "tver", "Орда": "horde", "Литва": "lithuania", "Орден": "orders", "Османы": "ottoman"};
+  const STEPPE = ["mong", "horde", "polov", "pech", "khaz", "avar", "hun", "sarm", "scyth"];
+  const RUSSUB = new Set(["gal", "pol", "nov", "smo", "kie", "per", "che", "vla", "rya", "moscow", "tver"]);
   // вид связи: цвет, значок, как назвать. Цветов три: вражда — красный, союз и мир — зелёный, брак — золото; вид — значком
   const RED = "#d8452f", GRN = "#6fbf8f", GLD = "#e6c65a", NEU = "#c9b98f";
   const LT = {
@@ -32,8 +37,8 @@ window.PRIVER = (() => {
 
   // годы жизни: неизвестное рождение — от первого стола −18, от отца +25 или за 40 лет до смерти
   const memo = {};
-  // лента кончается на 1240-м: кто жил дольше, у того нить уходит за край тома; родившиеся у самого края — короткий хвостик
-  const clampL = (a, b) => { a = Math.round(Math.max(Math.min(a, 1236), -750)); return [a, Math.round(Math.min(Math.max(b, a + 3), 1240))]; };
+  // Keep lifelines within the timeline's date range.
+  const clampL = (a, b) => { a = Math.round(Math.max(Math.min(a, Y1 - 4), Y0)); return [a, Math.round(Math.min(Math.max(b, a + 3), Y1))]; };
   function life(id) {
     if (memo[id]) return memo[id];
     const p = P[id], s = p.s || [];
@@ -65,10 +70,10 @@ window.PRIVER = (() => {
     return k;
   }
 
-  // шкала лет реки личностей: древность сжата, IX–XIII вв. ровно, окно увеличенного человека — втрое шире
+  // Compress the earliest years and use a constant scale from the ninth century.
   function scale() {
     const base = y => (y < 750 ? .45 : y < 860 ? 2.6 : 6.5) * zf;
-    const br = [-751, 750, 860, 1270];
+    const br = [Y0 - 1, 750, 860, Y1 + 30];
     let px = 90; const an = [[br[0], px]];
     for (let i = 1; i < br.length; i++) { px += (br[i] - br[i - 1]) * base(br[i - 1]); an.push([br[i], px]); }
     return an;
@@ -109,7 +114,10 @@ window.PRIVER = (() => {
     else if (id === "EU") s = b.find(q => q.id === "varang");
     else if (RUSSUB.has(id) && y < 1054) s = b.find(q => q.id === "rus");
     else s = b.find(q => q.id === id);
-    if (!has(s)) s = [b.find(q => q.id === "rus"), b.find(q => q.id === "kie"), b.find(q => q.id === "slav")].find(has) || b.find(has);
+    if (!has(s)) {
+      const inherited = {moscow:"vla", tver:"vla", horde:"mong", vla:"moscow"}[id];
+      s = [inherited, "rus", "kie", "slav"].map(key => b.find(q => q.id === key)).find(has) || b.find(has);
+    }
     return {k: s.id, x0: g.rx + s.f0 * g.rw, x1: g.rx + s.f1 * g.rw};
   }
 
@@ -122,14 +130,14 @@ window.PRIVER = (() => {
       const cnt = {};
       Object.keys(P).filter(shown).forEach(id => { const [a, b] = life(id); for (let t = a; t <= b; t++) { const k = band(where(id, t), t, true).k; ((cnt[t] = cnt[t] || {})[k] = (cnt[t][k] || 0) + 1); } });
       const keys = [...new Set(Object.values(cnt).flatMap(Object.keys))];
-      for (let t = -750; t <= 1240; t++) {
+      for (let t = Y0; t <= Y1; t++) {
         const o = {}; let tot = 0;
         keys.forEach(k => { let s = 0; for (let d = -12; d <= 12; d++) s += (cnt[t + d]?.[k] || 0) * (13 - Math.abs(d)); if (s) { o[k] = s; tot += s; } });
         if (tot) { Object.keys(o).forEach(k => o[k] /= tot); crowdY[t] = o; }
       }
     }
     // между годами — плавно, чтобы края русел не шли ступеньками
-    const yy = Math.max(-750, Math.min(1240, y)), a = crowdY[Math.floor(yy)], b = crowdY[Math.ceil(yy)], t = yy - Math.floor(yy);
+    const yy = Math.max(Y0, Math.min(Y1, y)), a = crowdY[Math.floor(yy)], b = crowdY[Math.ceil(yy)], t = yy - Math.floor(yy);
     if (!a || !b || !t) return a || b || null;
     const o = {}; new Set([...Object.keys(a), ...Object.keys(b)]).forEach(k => o[k] = (a[k] || 0) * (1 - t) + (b[k] || 0) * t);
     return o;
@@ -280,7 +288,7 @@ window.PRIVER = (() => {
     });
     // ещё ближе — события на руслах: где и когда это было; клик — к событию в реке событий
     if (L >= 3) (window.RIVER?.EVENTS || []).forEach(e => {
-      const y = Math.round(e.y); if (y < -750 || y > 1240) return;
+      const y = Math.round(e.y); if (y < Y0 || y > Y1) return;
       const bd = band(e.s, y), py = A.yToPx(e.y), tw = e.t.length * 6.4 + 22;
       const r = [bd.x0 + 4, py - 12, bd.x0 + 4 + tw, py + 6];
       if (r[2] > right || !free(r)) return;
@@ -365,7 +373,7 @@ window.PRIVER = (() => {
     sel = id;
     const L = life(id);
     if (!L) { if (!document.body.classList.contains("pmode")) A.mode(true); mark(id); return true; }
-    zoom = id; win = [Math.max(-750, L[0] - 25), Math.min(1240, L[1] + 20)];
+    zoom = id; win = [Math.max(Y0, L[0] - 25), Math.min(Y1, L[1] + 20)];
     // масштаб — чтобы его жизнь заняла пару экранов
     zf = Math.max(LV[2], Math.min(LV[4], innerHeight * 2 / ((L[1] - L[0] + 20) * 6.5)));
     // если сейчас на линии его годы — остаёмся там, иначе — к его первому столу
@@ -411,11 +419,12 @@ window.PRIVER = (() => {
   }
   // подписи русел на текущий год — в шапке над рекой
   const LANE = {kie: "Киев", nov: "Новгород", pol: "Полоцк", smo: "Смоленск", che: "Чернигов", per: "Переяславль", vla: "Суздаль", rya: "Рязань",
-    gal: "Галич", rus: "Русь", varang: "Варяги и Европа", byz: "Византия", polov: "Половцы", pech: "Печенеги", khaz: "Хазары", mong: "Монголы", bulg: "Булгария", slav: "Славяне", dbulg: "Болгария"};
+    gal: "Галич", rus: "Русь", varang: "Варяги и Европа", byz: "Византия", polov: "Половцы", pech: "Печенеги", khaz: "Хазары", mong: "Монголы", bulg: "Булгария", slav: "Славяне", dbulg: "Болгария",
+    moscow: "Москва", tver: "Тверь", horde: "Орда", lithuania: "Литва", orders: "Ордены", ottoman: "Османы"};
   function now(y) {
     if (!bar || !document.body.classList.contains("pmode")) return;
     const ln = bar.querySelector(".lanes"); if (!ln) return;
-    const A = window.RIVERAPI, g = A.geom(), yy = Math.round(Math.max(-750, Math.min(1240, y)));
+    const A = window.RIVERAPI, g = A.geom(), yy = Math.round(Math.max(Y0, Math.min(Y1, y)));
     const key = yy + ":" + g.rw; if (ln.dataset.k === key) return; ln.dataset.k = key;
     const b = A.bands(yy), off = bar.getBoundingClientRect().left - tl.getBoundingClientRect().left;
     ln.innerHTML = b.filter(q => (q.f1 - q.f0) * g.rw > 34 && LANE[q.id]).map(q =>

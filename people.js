@@ -254,3 +254,10 @@ window.PEOPLE = {
     karpini: {n:"Плано Карпини", a:["Джованни дель Плано Карпини"], b:"foreign", y:1252, d:"итальянский монах, посол папы к монголам", bio:"Через шесть лет после Батыева нашествия, в 1246 году, нашёл в Киеве около двухсот домов и множество черепов и костей."},
   },
 };
+
+if (window.HORDE_WORLD) {
+  const {branches, people, peopleUpdates} = window.HORDE_WORLD;
+  Object.assign(window.PEOPLE.B, branches);
+  Object.assign(window.PEOPLE.P, people);
+  Object.entries(peopleUpdates || {}).forEach(([id, update]) => Object.assign(window.PEOPLE.P[id], update));
+}

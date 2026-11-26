@@ -3,6 +3,7 @@ window.MAP = (() => {
   const {P, PRINC, POL, RUS} = window.GEO;
   Object.assign(P, window.XP || {}, {"Ольвия": [46.69, 31.9], "Пантикапей": [45.35, 36.47]});
   const DESC = window.RIVER.DESC;
+  const CITYINFO = {...window.CITYINFO, ...window.HORDE_WORLD?.placeNotes};
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   // абзацы через пустую строку; *…* — опорные имена и даты
@@ -23,7 +24,7 @@ window.MAP = (() => {
     return P[b] || null;
   }
 
-  const map = L.map("map", {zoomControl: false, scrollWheelZoom: true, wheelPxPerZoomLevel: 110, zoomSnap: .25, minZoom: 3, maxZoom: 8}).setView([52, 32], 4.5);
+  const map = L.map("map", {zoomControl: false, scrollWheelZoom: true, wheelPxPerZoomLevel: 110, zoomSnap: .25, minZoom: 2, maxZoom: 8}).setView([52, 32], 4.5);
   L.control.zoom({position: "bottomright"}).addTo(map);
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}",
     {maxNativeZoom: 8, attribution: "Рельеф: Esri"}).addTo(map);
@@ -32,8 +33,9 @@ window.MAP = (() => {
   const TRIBES = ["Поляне","Древляне","Северяне","Радимичи","Вятичи","Кривичи","Ильменские словене","Дреговичи","Волыняне","Уличи","Тиверцы","Чудь","Весь","Меря","Мурома","Мордва"];
   const CITIES = [["Ладога",750],["Новгород",850],["Киев",600],["Константинополь",-700],["Смоленск",850],["Полоцк",860],["Чернигов",900],
     ["Ростов",860],["Итиль",750,969],["Саркел",834,1117],["Булгар",900],["Тмутаракань",965],["Херсонес",-700],["Псков",903],
-    ["Владимир",990],["Суздаль",1000],["Москва",1147],["Рязань",1096],["Галич",1140],["Владимир-Волынский",988],["Новгород-Северский",1078],["Доростол",900]];
-  const MAJOR = new Set(["Киев","Новгород","Константинополь","Итиль","Владимир","Москва","Смоленск","Полоцк","Чернигов","Галич","Булгар","Ладога"]);
+    ["Владимир",990],["Суздаль",1000],["Москва",1147],["Рязань",1096],["Галич",1140],["Владимир-Волынский",988],["Новгород-Северский",1078],["Доростол",900],
+    ["Тверь",1247],["Вильна",1323],["Сарай-Бату",1254,1261],["Сарай-Берке",1262,1395],["Сарай",1396,1437],["Казань",1438]];
+  const MAJOR = new Set(["Киев","Новгород","Константинополь","Итиль","Владимир","Москва","Смоленск","Полоцк","Чернигов","Галич","Булгар","Ладога","Тверь","Вильна","Сарай-Бату","Сарай-Берке","Сарай","Казань"]);
   const setZ = () => document.getElementById("map").classList.toggle("zlo", map.getZoom() < 5.5);
   map.on("zoomend", setZ); setZ();
   const centroid = r => r.reduce((a, p) => [a[0] + p[0] / r.length, a[1] + p[1] / r.length], [0, 0]);
@@ -43,7 +45,7 @@ window.MAP = (() => {
   function active(y) {
     const out = POL.filter(p => y >= p.from && y <= p.to).map(p => ({...p, kind: "pol"}));
     if (y < 1054) RUS.filter(p => y >= p.from && y <= p.to).forEach(p => out.push({...p, color: p.name.startsWith("Тмут") ? "#6f8f3d" : "#b3261e", kind: "rus"}));
-    else {
+    else if (y <= 1240) {
       PRINC.forEach(p => out.push({...p, kind: "princ"}));
       RUS.filter(p => p.name.startsWith("Тмут") && y <= p.to).forEach(p => out.push({...p, color: "#6f8f3d", kind: "princ"}));
     }
@@ -60,7 +62,7 @@ window.MAP = (() => {
     seats(y);
     const ep = epoch(y);
     const list = active(y);
-    const k = ep.k + list.map(t => t.name).join("|") + (y > 550 && y < 1000 ? "T" : "") + CITIES.filter(c => y >= c[1] && y <= (c[2] ?? 9e9)).length;
+    const k = ep.k + list.map(t => `${t.name}:${t.from ?? ""}`).join("|") + (y > 550 && y < 1000 ? "T" : "") + CITIES.filter(c => y >= c[1] && y <= (c[2] ?? 9e9)).length;
     if (k === key) return;
     key = k; polys = {};
     terrL.clearLayers(); tribeL.clearLayers(); cityL.clearLayers();
@@ -69,7 +71,7 @@ window.MAP = (() => {
       const base = {color: t.color, weight: rus ? 2.2 : 1.2, opacity: .9, fillColor: t.color, fillOpacity: rus ? .26 : princ ? .24 : .18, dashArray: rus || princ ? null : "5 4"};
       const pg = L.polygon(t.ring, {...base, className: "terr"}).addTo(terrL);
       pg._base = base;
-      pg.bindTooltip(`<b>${esc(t.name)}</b>${esc(DESC[t.name] || "")}`, {sticky: true, className: "ttip", direction: "top", offset: [0, -8]});
+      pg.bindTooltip(`<b>${esc(t.name)}</b>${esc(t.d || DESC[t.name] || "")}`, {sticky: true, className: "ttip", direction: "top", offset: [0, -8]});
       pg.on("mouseover", () => hl(pg, true)).on("mouseout", () => hl(pg, false));
       polys[t.name] = pg;
       if (!t.nolabel) divLabel(t.label || centroid(t.ring), t.name, princ ? "" : "big").addTo(terrL);
@@ -90,7 +92,8 @@ window.MAP = (() => {
 
   // ----- столы: кто княжит в году; цвет — ветвь рода -----
   const seatL = L.layerGroup().addTo(map);
-  const SEATS = ["Киев","Новгород","Чернигов","Переяславль","Полоцк","Смоленск","Ростов","Владимир","Галич","Владимир-Волынский","Туров","Тмутаракань"];
+  const SEATS = ["Киев","Новгород","Чернигов","Переяславль","Полоцк","Смоленск","Ростов","Владимир","Галич","Владимир-Волынский","Туров","Тмутаракань",
+    "Москва","Тверь","Вильна","Сарай-Бату","Сарай-Берке","Сарай","Казань"];
   let seatKey = "", plateCities = new Set();
   function seats(y) {
     const U = window.KINUI, K = window.PEOPLE;
@@ -117,7 +120,7 @@ window.MAP = (() => {
   function city(name, hot, minor, ctr) {
     const ll = geo(name), g = L.layerGroup();
     if (!ll) return g;
-    const info = (window.CITYINFO || {})[name];
+    const info = CITYINFO[name];
     const region = !!polys[name]; // «Половецкая степь» и т. п.: подпись уже есть у области
     const tip = m => info ? m.bindTooltip(`<b>${esc(name)}</b>${esc(info)}`, {className: "ttip", direction: "auto", offset: [8, 0]}) : m;
     tip(L.marker(ll, {interactive: !!info, icon: L.divIcon({className: "", iconSize: [8, 8], iconAnchor: [4, 4], html: `<div class="cdot ${hot ? "hot" : ""} ${ctr ? "ctr" : ""}"></div>`})})).addTo(g);
@@ -130,7 +133,7 @@ window.MAP = (() => {
   function legend(list) {
     const seen = new Set();
     const rows = list.filter(t => !seen.has(t.name) && seen.add(t.name)).map(t =>
-      `<div class="row" data-n="${esc(t.name)}"><i style="background:${t.color}"></i>${esc(t.name)}</div><div class="desc">${esc(DESC[t.name] || "")}</div>`).join("");
+      `<div class="row" data-n="${esc(t.name)}"><i style="background:${t.color}"></i>${esc(t.name)}</div><div class="desc">${esc(t.d || DESC[t.name] || "")}</div>`).join("");
     const lines = Object.values(KIND).filter((v, i, a) => a.findIndex(w => w[1] === v[1]) === i).map(([c, n]) =>
       `<div class="row"><span class="ln" style="border-color:${c};${n.includes("героя") ? "border-top-style:dashed" : ""}"></span>${n}</div>`).join("");
     const L_ = $("#legend");
@@ -164,15 +167,16 @@ window.MAP = (() => {
     return pts;
   }
   let routeKey = "";
+  const CONTEXT = {...window.CONTEXT, ...window.HORDE_EARLY?.context, ...window.HORDE_LATE?.context};
   function eventContext(ev) {
-    const p = window.CONTEXT?.[ev.t]?.p;
+    const p = CONTEXT[ev.t]?.p;
     return p ? `<div class="ctx"><p>${link(esc(p))}</p></div>` : "";
   }
   function caption(ev, sub, kind, routeText) {
     const [c, kn] = KIND[kind] || ["#d8452f", "место события"];
     const cap = $("#mapcap");
-    cap.style.setProperty("--c", c);
-    cap.innerHTML = `<span class="k">${kn}</span><b>${esc(ev.t)}</b>${esc(sub || "")}${eventContext(ev)}${routeText ? `<div class="r">${esc(routeText)}</div>` : ""}`;
+    cap.style.setProperty("--c", ev.story ? KIND.story[0] : c);
+    cap.innerHTML = `<span class="k">${ev.story ? esc("повесть · " + ev.story) : kn}</span><b>${esc(ev.t)}</b>${esc(sub || "")}${eventContext(ev)}${routeText ? `<div class="r">${esc(routeText)}</div>` : ""}`;
     cap.scrollTop = 0;
     cap.classList.remove("off");
   }
@@ -198,7 +202,7 @@ window.MAP = (() => {
       L.marker(line[line.length - 1], {interactive: false, icon: L.divIcon({className: "", iconSize: [16, 16], iconAnchor: [8, 8],
         html: `<div class="arrowhead" style="--c:${color};transform:rotate(${ang}deg)"></div>`})}).addTo(routeL);
     }
-    caption(ev, ev.d, kind, ev.r.join(" → "));
+    caption(ev, [ev.d, ev.loc].filter(Boolean).join(" · "), kind, ev.r.join(" → "));
     fitEvent();
   }
   function focusPlace(ev) {
@@ -210,7 +214,7 @@ window.MAP = (() => {
     routeL.clearLayers(); plateL.clearLayers(); cur = null; sceneB = null; useLoupe = false; zones([]);
     city(ev.p, true).addTo(routeL);
     hotLL = [ll]; dedupe();
-    caption(ev, ev.d + " · " + ev.p, null, "");
+    caption(ev, [ev.d, ev.loc || ev.p].filter(Boolean).join(" · "), null, "");
     fitEvent();
   }
   function clearRoute() { window.FX?.clear(); sceneB = null; cur = null; cpts = null; homeV = null; plateL.clearLayers(); useLoupe = false; if (lensPinned) setPinned(false); hideLens(); routeKey = ""; hotLL = []; zones([]); dedupe(); routeL.clearLayers(); routeL._badges = []; $("#mapcap").classList.add("off"); }
@@ -435,7 +439,8 @@ window.MAP = (() => {
   }
   // Вид меняется только на границе эпохи; внутри эпохи карта стоит и лишь расширяется, если маршрут не влез.
   const ERAB = [[-1e9, [[40, 14], [58, 52]]], [550, [[42, 16], [62, 50]]], [855, [[39, 15], [62, 50]]],
-    [880, [[40, 22], [62, 50]]], [1054, [[44, 22], [63, 47]]], [1223, [[45, 22], [61, 52]]]];
+    [880, [[40, 22], [62, 50]]], [1054, [[44, 22], [63, 47]]], [1223, [[45, 22], [61, 52]]],
+    ...(window.HORDE_PERIOD?.mapViews || [])];
   const PADF = () => ({paddingTopLeft: [30, 50], paddingBottomRight: [20, 60]});
   let viewB = null, eraKey = null;
   function eraView(y) {

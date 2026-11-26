@@ -1,19 +1,19 @@
 // Река времени: раскладка, отрисовка потоков, синхронизация с картой.
 (() => {
-const {STREAMS, ERAS, EVENTS, FICTION, THREAD} = window.RIVER;
+const {Y0, Y1, STREAMS, ERAS, EVENTS, FICTION, THREAD} = window.RIVER;
 const M = window.MAP;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const NS = "http://www.w3.org/2000/svg";
-const ROMAN = ["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII"];
-const Y0 = -750, Y1 = 1240;
+const ROMAN = ["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV"];
 
 // поток → области на карте
 const MAPNAMES = {scyth:["Скифия"], sarm:["Сарматы"], goth:["Держава Германариха (готы)"], hun:["Гунны"], avar:["Аварский каганат"],
   khaz:["Хазарский каганат"], pech:["Печенеги"], polov:["Половецкая степь"], byz:["Византия","Херсонес (визант.)"], bulg:["Волжская Булгария"],
   dbulg:["Болгарское царство"], rus:["Северная Русь (Рюрик)","Киев (Аскольд и Дир)","Русь Олега и Игоря","Русь Святослава и Ольги","Киевская Русь"],
   gal:["Галицкое","Волынское"], pol:["Полоцкое"], nov:["Новгородская земля"], smo:["Смоленское"], kie:["Киевское"], per:["Переяславское"],
-  che:["Черниговское"], vla:["Владимиро-Суздальское"], rya:["Муромо-Рязанское"]};
+  che:["Черниговское"], vla:["Владимиро-Суздальское"], rya:["Муромо-Рязанское"],
+  ...window.HORDE_PERIOD?.mapNames};
 
 const interp = (kf, y) => {
   if (y < kf[0][0] || y > kf[kf.length - 1][0]) return 0;
@@ -66,7 +66,7 @@ items.forEach((it, i) => {
   tl.appendChild(el);
 });
 // правители: тонкая лента в левой колонке, повести ложатся поверх
-const SC = window.SCENES || {};
+const SC = {...window.SCENES, ...window.HORDE_EARLY?.scenes, ...window.HORDE_LATE?.scenes};
 const REIGNS = window.STATS.rulers.filter(r => r[1] !== "—").map((r, i, a) => {
   const el = document.createElement("div");
   el.className = "reign";
@@ -83,7 +83,7 @@ $("#toc").innerHTML = items.filter(i => i.side !== "L").sort((a, b) => a.y - b.y
 /* ---------- раскладка ---------- */
 let anchors = [], geom = {};
 const baseY = y => { // «естественная» шкала: древность сжата
-  const pts = [[Y0, 0], [500, 380], [850, 640], [Y1, 640 + 390 * 2.2]];
+  const pts = [[Y0, 0], [500, 380], [850, 640], [Y1, 640 + (Y1 - 850) * 2.2]];
   for (let i = 1; i < pts.length; i++) if (y <= pts[i][0]) { const [a, pa] = pts[i - 1], [b, pb] = pts[i]; return pa + (y - a) / (b - a) * (pb - pa); }
   return pts[pts.length - 1][1];
 };
@@ -147,7 +147,7 @@ function layout() {
       it.el.style.top = (pos - 16) + "px";
       bottom[col] = pos - 16 + it.h;
     }
-    if (!anchors.length || it.y > anchors[anchors.length - 1][0]) anchors.push([it.y, pos]);
+    anchors.push([it.y, pos]);
   });
   anchors.unshift([Y0 - 1, anchors[0][1] - 20]);
   let H = Math.max(bottom.L, bottom.R) + innerHeight * .5;
@@ -191,15 +191,16 @@ function drawRiver(H) {
   svg.innerHTML = "";
   const samples = [];
   const yStart = pxToY(0), yEnd = Y1;
-  for (let px = yToPx(yStart); px <= yToPx(yEnd) + 1; px += 5) samples.push(pxToY(px));
-  samples.push(yEnd);
+  const startPx = yToPx(yStart), endPx = yToPx(yEnd);
+  for (let py = startPx; py < endPx; py += 5) samples.push({y: pxToY(py), py});
+  samples.push({y: yEnd, py: endPx});
   const X = f => g.rx + f * g.rw;
   // фон-русло
   const bed = document.createElementNS(NS, "rect");
   Object.entries({x: g.rx - 3, y: yToPx(yStart), width: g.rw + 6, height: yToPx(yEnd) - yToPx(yStart), rx: 6, fill: "#0b0907"}).forEach(([k, v]) => bed.setAttribute(k, v));
   svg.appendChild(bed);
   // вековые отметки
-  for (let c = -7; c <= 13; c++) {
+  for (let c = Math.ceil(Y0 / 100); c <= Math.ceil(Y1 / 100); c++) {
     if (c === 0) continue;
     const yr = c < 0 ? c * 100 : (c - 1) * 100;
     if (yr < yStart) continue;
@@ -213,8 +214,9 @@ function drawRiver(H) {
     if (g.lw || c > 0) svg.appendChild(tx);
   }
   // полосы; на 1054 добавляем точку «за миг до раздела», чтобы Русь и её княжества сходились без щели
-  samples.push(1053.99, 1054); samples.sort((a, b) => a - b);
-  const B = samples.map(y => ({y, py: yToPx(y), b: bands(y)}));
+  for (const y of [1053.99, 1054]) samples.push({y, py: yToPx(y)});
+  samples.sort((a, b) => a.py - b.py);
+  const B = samples.map(({y, py}) => ({y, py, b: bands(y)}));
   const eraPy = items.filter(i => i.side === "E").map(i => i.py);
   const defs = document.createElementNS(NS, "defs"); svg.appendChild(defs);
   const RUS = STREAMS.find(x => x.id === "rus").color;
@@ -286,7 +288,10 @@ function streamX(id, y) {
   const b = bands(y);
   let s = b.find(q => q.id === id && q.f1 - q.f0 > .002) || b.find(q => q.id === "rus" && q.f1 - q.f0 > .002) || b.find(q => q.id === "slav" && q.f1 - q.f0 > .002) || b.find(q => q.f1 - q.f0 > .002);
   if (!s && id === "rus") s = b.find(q => q.parent === "rus");
-  if (id === "rus" && y >= 1054) { const k = b.find(q => q.id === "kie"); if (k) s = k; }
+  if (id === "rus" && y >= 1054) {
+    const k = ["kie", "moscow"].map(key => b.find(q => q.id === key)).find(q => q && q.f1 - q.f0 > .002);
+    if (k) s = k;
+  }
   return geom.rx + (s.f0 + s.f1) / 2 * geom.rw;
 }
 function drawLinks(H) {
@@ -297,7 +302,7 @@ function drawLinks(H) {
   items.forEach(it => {
     if (it.side === "E") return;
     const fic = it.side === "L";
-    const x = streamX(fic ? "rus" : it.s, it.y), y = it.py;
+    const x = streamX(it.s || "rus", it.y), y = it.py;
     const tx = fic && !mobile ? g.lx + g.lw : g.cx, ty = y;
     const p = document.createElementNS(NS, "path");
     const mx = (x + tx) / 2;
@@ -308,7 +313,7 @@ function drawLinks(H) {
     Object.entries({cx: x, cy: y, r: fic ? 4.5 : 5, class: "edot" + (fic ? " f" : "")}).forEach(([k, v]) => c.setAttribute(k, v));
     svg.appendChild(c);
     it.link = p; it.dot = c;
-    if (fic && !mobile) thread.push([g.lx + 6, it.py]);
+    if (fic && !mobile && (!it.collection || it.lineage)) thread.push([g.lx + 6, it.py]);
   });
   if (thread.length > 1) { // золотая нить родовой метки по левому берегу
     const th = document.createElementNS(NS, "path");
@@ -363,13 +368,14 @@ function show(it, force) {
 }
 function onScroll() {
   if (!anchors.length) return; // страница ещё не разложена (прокрутка до загрузки шрифтов)
+  snapTo = null;
   const r = tl.getBoundingClientRect();
   const nowPx = innerHeight * NOWF() - r.top;
   const now = $("#now");
   const inside = nowPx > 0 && nowPx < r.height - innerHeight * .3;
   now.style.opacity = inside ? 1 : 0;
   if (inside) {
-    const y = pxToY(nowPx);
+    const y = Math.min(Y1, pxToY(nowPx));
     now.style.top = innerHeight * NOWF() + "px";
     now.style.left = (r.left + geom.rx - 4) + "px";
     now.style.width = (geom.rw + 8) + "px";
@@ -379,7 +385,7 @@ function onScroll() {
     window.PRIVER?.now(y);
     M.eraView(y);
     // ближайшая карточка к линии «сейчас»; в реке личностей карточек нет — и доводки к ним тоже
-    if (pmode()) { activate(null); snapTo = null; } else {
+    if (pmode()) { activate(null); } else {
     let best = null, bd = 1e9;
     items.forEach(it => { if (it.side !== "E") { const d = Math.abs(it.py - nowPx); if (d < bd) { bd = d; best = it; } } });
     activate(bd < 160 ? best : null);
@@ -392,16 +398,23 @@ function onScroll() {
 let ticking = false;
 // Остановился рядом с событием — лента мягко доезжает до него: река идёт «по моментам», а не просто течёт.
 let snapTo = null, snapT;
-addEventListener("scroll", () => {
+function settleScroll() {
+  onScroll();
+  if (snapTo) scrollToPx(snapTo.py);
+}
+if ("onscrollend" in document) document.addEventListener("scrollend", settleScroll);
+else addEventListener("scroll", () => {
   clearTimeout(snapT);
-  snapT = setTimeout(() => { if (snapTo) { scrollToPx(snapTo.py); snapTo = null; } }, 220);
+  snapT = setTimeout(settleScroll, 220);
 }, {passive: true});
 // флаг снимаем в finally: одна ошибка в пересчёте не должна навсегда заморозить год и карту
 addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(() => { try { onScroll(); } finally { ticking = false; } }); } }, {passive: true});
 
-function scrollToPx(px) {
+function scrollToPx(px, behavior = "smooth") {
+  clearTimeout(snapT);
+  snapTo = null;
   const top = tl.getBoundingClientRect().top + scrollY + px - innerHeight * NOWF();
-  scrollTo({top, behavior: "smooth"});
+  scrollTo({top, behavior});
 }
 document.addEventListener("click", e => {
   const card = e.target.closest(".card");
@@ -412,10 +425,13 @@ document.addEventListener("click", e => {
       document.querySelectorAll(".card.open").forEach(c => c.classList.remove("open"));
       card.classList.toggle("open", open);
       layout();
+      // Align the expanded card after layout before map updates resume.
+      scrollToPx(it.py, "instant");
+      onScroll();
     }
-    if (it.side === "R") activate(it);
+    activate(it);
     show(it, true);
-    scrollToPx(it.py);
+    if (it.side === "R") scrollToPx(it.py);
     return;
   }
   const era = e.target.closest("[data-era]"), ev = e.target.closest("[data-ev]");

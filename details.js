@@ -93,3 +93,6 @@ window.STATS = {
     [1223,{c:["Владимир","Новгород","Галич","Киев"],th:[],tp:["Калка","монголы: угроза Руси"]}],
 ],
 };
+
+window.STATS.rulers.push(...(window.HORDE_PERIOD?.rulers || []));
+window.STATS.eras.push(...(window.HORDE_PERIOD?.mapEras || []));
