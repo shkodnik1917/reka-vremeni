@@ -164,11 +164,16 @@ window.MAP = (() => {
     return pts;
   }
   let routeKey = "";
-  function caption(title, sub, kind, routeText) {
+  function eventContext(ev) {
+    const p = window.CONTEXT?.[ev.t]?.p;
+    return p ? `<div class="ctx"><p>${link(esc(p))}</p></div>` : "";
+  }
+  function caption(ev, sub, kind, routeText) {
     const [c, kn] = KIND[kind] || ["#d8452f", "место события"];
     const cap = $("#mapcap");
     cap.style.setProperty("--c", c);
-    cap.innerHTML = `<span class="k">${kn}</span><b>${esc(title)}</b>${esc(sub || "")}${routeText ? `<div class="r">${esc(routeText)}</div>` : ""}`;
+    cap.innerHTML = `<span class="k">${kn}</span><b>${esc(ev.t)}</b>${esc(sub || "")}${eventContext(ev)}${routeText ? `<div class="r">${esc(routeText)}</div>` : ""}`;
+    cap.scrollTop = 0;
     cap.classList.remove("off");
   }
   function showRoute(ev, force) {
@@ -193,7 +198,7 @@ window.MAP = (() => {
       L.marker(line[line.length - 1], {interactive: false, icon: L.divIcon({className: "", iconSize: [16, 16], iconAnchor: [8, 8],
         html: `<div class="arrowhead" style="--c:${color};transform:rotate(${ang}deg)"></div>`})}).addTo(routeL);
     }
-    caption(ev.t, ev.d, kind, ev.r.join(" → "));
+    caption(ev, ev.d, kind, ev.r.join(" → "));
     fitEvent();
   }
   function focusPlace(ev) {
@@ -205,7 +210,7 @@ window.MAP = (() => {
     routeL.clearLayers(); plateL.clearLayers(); cur = null; sceneB = null; useLoupe = false; zones([]);
     city(ev.p, true).addTo(routeL);
     hotLL = [ll]; dedupe();
-    caption(ev.t, ev.d + " · " + ev.p, null, "");
+    caption(ev, ev.d + " · " + ev.p, null, "");
     fitEvent();
   }
   function clearRoute() { window.FX?.clear(); sceneB = null; cur = null; cpts = null; homeV = null; plateL.clearLayers(); useLoupe = false; if (lensPinned) setPinned(false); hideLens(); routeKey = ""; hotLL = []; zones([]); dedupe(); routeL.clearLayers(); routeL._badges = []; $("#mapcap").classList.add("off"); }
@@ -423,10 +428,7 @@ window.MAP = (() => {
       return `<li data-i="${i}"><i style="--c:${c}">${i + 1}</i><span>${esc(what)}</span><em>${esc(when)}</em>${a.b ? `<div class="sb">${link(esc(a.b))}</div>` : ""}${a.x ? `<div class="sx">${paras(a.x)}</div>` : ""}</li>`;
     }).join("");
     capEl.style.setProperty("--c", "var(--gold2)");
-    const C = (window.CONTEXT || {})[ev.t];
-    // связный рассказ: карточка в реке говорит, что случилось, а этот абзац — почему и что из этого вышло
-    const ctx = C?.p ? `<div class="ctx"><p>${link(esc(C.p))}</p></div>` : "";
-    capEl.innerHTML = `<b>${esc(ev.t)}</b><span class="cd">${esc(ev.d)}</span>${ctx}${steps ? `<ol class="steps">${steps}</ol>` : ""}`;
+    capEl.innerHTML = `<b>${esc(ev.t)}</b><span class="cd">${esc(ev.d)}</span>${eventContext(ev)}${steps ? `<ol class="steps">${steps}</ol>` : ""}`;
     capEl.scrollTop = 0;
     capEl.classList.remove("off");
     fitEvent();
