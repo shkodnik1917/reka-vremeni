@@ -372,7 +372,7 @@ footer{text-align:center;color:var(--muted);font:italic 14px var(--serif);paddin
 }
 </style>
 <link rel="stylesheet" href="map-labels.css">
-<link rel="stylesheet" href="flow.css">
+<link rel="stylesheet" href="flow.css?v=2">
 </head>
 <body>
 <div id="progress"></div>
@@ -393,7 +393,7 @@ footer{text-align:center;color:var(--muted);font:italic 14px var(--serif);paddin
         <form><label for="flow-year">Год</label><input id="flow-year" type="number" step="1" required><button type="submit" aria-label="Перейти к году">↵</button></form>
         <div id="flow-rulers" class="flow-rulers" aria-label="Кто правил"></div>
       </div>
-      <details class="flow-key"><summary>Как читать</summary><p>Нажми на цветное течение, чтобы раскрыть его. В отдельном течении толстая нить показывает годы правления, точки связывают людей с событиями. Пунктиром показаны персонажи повестей и участие людей из других течений. Цвет рамки отмечает внешнюю сторону.</p></details>
+      <details class="flow-key"><summary>Как читать</summary><p>Нажми на цветную полосу, чтобы раскрыть течение. У каждого человека своё русло. Оно расширяется в годы правления и у событий, затем сужается к концу жизни или последнему известному упоминанию. Пунктирный берег отмечает повесть или участие человека из другого течения. Цвет рамки показывает, кто участвовал с другой стороны.</p></details>
     </div>
   </main>
   <aside class="mapwrap">
@@ -449,7 +449,7 @@ footer{text-align:center;color:var(--muted);font:italic 14px var(--serif);paddin
 <script src="portraits.js"></script>
 <script src="fame.js"></script>
 <script src="flows.js"></script>
-<script src="flow-view.js"></script>
+<script src="flow-view.js?v=2"></script>
 <script src="links.js"></script>
 <script src="kintree.js"></script>
 <script src="priver.js"></script>
