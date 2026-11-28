@@ -261,3 +261,13 @@ if (window.HORDE_WORLD) {
   Object.assign(window.PEOPLE.P, people);
   Object.entries(peopleUpdates || {}).forEach(([id, update]) => Object.assign(window.PEOPLE.P[id], update));
 }
+
+window.PEOPLE.B.byz = {n:"Византия", c:"#b1a1df"};
+window.PEOPLE.B.fiction = {n:"Персонажи повестей", c:"#a9d9d1"};
+Object.assign(window.PEOPLE.P, window.FLOW_EXTRA1, window.FLOW_EXTRA2, window.FLOW_EARLY_PEOPLE, window.FLOW_BYZ_PEOPLE, window.FLOW_RULER_PEOPLE);
+Object.entries({...window.FLOW_FICTION1, ...window.FLOW_FICTION2}).forEach(([id, person]) => {
+  window.PEOPLE.P[id] = {...person, mo: person.mo || person.m, b: "fiction"};
+});
+window.PEOPLE.OFFICES = [
+  ...(window.FLOW_EARLY_OFFICES || []), ...(window.FLOW_BYZ_OFFICES || []), ...(window.FLOW_OFFICES || []),
+].map(([flow, id, office, from, to, src, note]) => ({flow, id, office, from, to, src, note}));

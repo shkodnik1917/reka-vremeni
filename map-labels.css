@@ -1,0 +1,103 @@
+:root {
+  --map-story: #93d5cb;
+}
+
+.cdot.story-point {
+  background: var(--map-story);
+  border-radius: 2px;
+  transform: rotate(45deg);
+  animation: none;
+}
+
+.lbl.city.story-city,
+.mapcap.story-caption > b {
+  color: var(--map-story);
+}
+
+.arrowhead.story-arrow {
+  opacity: 1;
+  animation: none;
+}
+
+.mapcap.off {
+  pointer-events: none;
+}
+
+.mapcap.off .story-nav {
+  visibility: hidden;
+}
+
+.story-summary {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+  color: var(--parch);
+}
+
+.story-summary p {
+  margin: 0 0 5px;
+}
+
+.story-nav {
+  display: flex;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.story-nav button {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--map-story);
+  background: rgba(147, 213, 203, .08);
+  font: inherit;
+  cursor: pointer;
+}
+
+.story-nav button:hover,
+.story-nav button:focus-visible {
+  border-color: var(--map-story);
+  background: rgba(147, 213, 203, .18);
+}
+
+.story-nav .story-next {
+  margin-left: auto;
+}
+
+#map button.seat {
+  width: max-content;
+  white-space: nowrap;
+  line-height: 1.2;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  text-align: left;
+  appearance: none;
+}
+
+.seat-name {
+  display: block;
+  white-space: nowrap;
+}
+
+#map button.seat.compact {
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border: 2px solid var(--b);
+  border-radius: 3px;
+}
+
+.seat.compact .seat-name {
+  display: none;
+}
+
+.pole.seat-pole {
+  visibility: hidden;
+  border-color: var(--b);
+  opacity: .65;
+}
+
+#map.zlo .seat-pole {
+  display: none;
+}

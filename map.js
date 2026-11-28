@@ -12,7 +12,7 @@ window.MAP = (() => {
   const paras = t => t.split(/\n\n+/).map(x => `<p>${link(esc(x)).replace(/\*([^*]+)\*/g, "<b>$1</b>")}</p>`).join("");
   const fmt = y => y < 0 ? `${-y} до н. э.` : String(Math.floor(y));
   const KIND = {war:["#d8452f","военный поход"], trade:["#e6c65a","путь, посольство"], migration:["#7fa6d6","переселение народа"],
-    flight:["#c9b48a","бегство, переезд"], story:["#e6c65a","путь героя повести"]};
+    flight:["#c9b48a","бегство, переезд"], story:["var(--map-story)","путь героя повести"]};
 
   function geo(name) {
     if (!name) return null;
@@ -94,7 +94,7 @@ window.MAP = (() => {
   const seatL = L.layerGroup().addTo(map);
   const SEATS = ["Киев","Новгород","Чернигов","Переяславль","Полоцк","Смоленск","Ростов","Владимир","Галич","Владимир-Волынский","Туров","Тмутаракань",
     "Москва","Тверь","Вильна","Сарай-Бату","Сарай-Берке","Сарай","Казань"];
-  let seatKey = "", plateCities = new Set();
+  let seatKey = "";
   function seats(y) {
     const U = window.KINUI, K = window.PEOPLE;
     if (!U || !K) return;
@@ -103,12 +103,14 @@ window.MAP = (() => {
     if (k === seatKey) return;
     seatKey = k;
     seatL.clearLayers();
-    hs.forEach(([c, id]) => L.marker(geo(c), {interactive: false, icon: L.divIcon({className: "", iconSize: [0, 0],
-      html: `<div class="seat" data-c="${esc(c)}" data-p="${id}" title="${esc(K.P[id].n)} — открыть карточку" style="--b:${U.col(id)}">${esc(K.P[id].n)}</div>`})}).addTo(seatL));
-    hideSeats();
+    hs.forEach(([c, id]) => {
+      const name = esc(K.P[id].n), label = `${esc(c)} · ${name}`;
+      const marker = L.marker(geo(c), {interactive: false, icon: L.divIcon({className: "", iconSize: [0, 0],
+        html: `<span class="pole seat-pole" style="--b:${U.col(id)}"></span><button type="button" class="seat" data-c="${esc(c)}" data-p="${id}" title="${label}" aria-label="${label}" style="--b:${U.col(id)}"><span class="seat-name">${name}</span></button>`})}).addTo(seatL);
+      L.DomEvent.disableClickPropagation(marker.getElement().querySelector("button"));
+    });
+    scheduleLabels();
   }
-  // где у города уже стоит табличка лиц сцены, подпись стола не дублируем
-  const hideSeats = () => mapEl.querySelectorAll(".seat").forEach(e => e.classList.toggle("dup", plateCities.has(e.dataset.c)));
 
   function hl(pg, on) {
     if (!pg) return;
@@ -117,14 +119,14 @@ window.MAP = (() => {
   }
   function highlight(names, on) { (names || []).forEach(n => hl(polys[n], on)); }
 
-  function city(name, hot, minor, ctr) {
+  function city(name, hot, minor, ctr, story) {
     const ll = geo(name), g = L.layerGroup();
     if (!ll) return g;
     const info = CITYINFO[name];
     const region = !!polys[name]; // «Половецкая степь» и т. п.: подпись уже есть у области
     const tip = m => info ? m.bindTooltip(`<b>${esc(name)}</b>${esc(info)}`, {className: "ttip", direction: "auto", offset: [8, 0]}) : m;
-    tip(L.marker(ll, {interactive: !!info, icon: L.divIcon({className: "", iconSize: [8, 8], iconAnchor: [4, 4], html: `<div class="cdot ${hot ? "hot" : ""} ${ctr ? "ctr" : ""}"></div>`})})).addTo(g);
-    if (!region) tip(L.marker(ll, {interactive: !!info, icon: L.divIcon({className: "", iconSize: [0, 0], html: `<div class="lbl city ${hot ? "hot" : ""} ${minor ? "minor" : ""} ${ctr ? "ctr" : ""} ${info ? "hov" : ""}">${esc(name)}</div>`})})).addTo(g);
+    tip(L.marker(ll, {interactive: !!info, icon: L.divIcon({className: "", iconSize: [8, 8], iconAnchor: [4, 4], html: `<div class="cdot ${hot ? "hot" : ""} ${ctr ? "ctr" : ""} ${story ? "story-point" : ""}"></div>`})})).addTo(g);
+    if (!region) tip(L.marker(ll, {interactive: !!info, icon: L.divIcon({className: "", iconSize: [0, 0], html: `<div class="lbl city ${hot ? "hot" : ""} ${minor ? "minor" : ""} ${ctr ? "ctr" : ""} ${info ? "hov" : ""} ${story ? "story-city" : ""}">${esc(name)}</div>`})})).addTo(g);
     return g;
   }
 
@@ -141,6 +143,7 @@ window.MAP = (() => {
     L_.innerHTML = `<div class="h">на карте <span class="tog" title="свернуть">${legMin ? "+" : "–"}</span></div><div class="body">${rows}
       <div class="h" style="margin-top:6px">линии</div>${lines}
       <div class="row"><span class="cdot hot" style="margin:0 7px"></span>место события</div>
+      <div class="row"><span class="cdot story-point" style="margin:0 7px"></span>место в повести</div>
       <div class="row"><span class="cdot ctr" style="margin:0 7px"></span>главные центры эпохи</div>
       <div class="row"><span class="ln" style="border-color:#ff3b2a;border-top-style:dashed"></span>главная угроза Руси</div><div style="height:8px"></div></div>`;
   }
@@ -172,52 +175,82 @@ window.MAP = (() => {
     const p = CONTEXT[ev.t]?.p;
     return p ? `<div class="ctx"><p>${link(esc(p))}</p></div>` : "";
   }
+  function storyContent(ev) {
+    const episodes = window.RIVER.FICTION.filter(e => e.story === ev.story && e.collection === ev.collection).sort((a, b) => a.y - b.y);
+    const i = episodes.findIndex(e => e.t === ev.t);
+    const previous = episodes[i - 1], next = i >= 0 ? episodes[i + 1] : null;
+    const button = (episode, label, direction) => episode
+      ? `<button type="button" class="story-${direction}" data-ev="${esc(episode.t)}" aria-label="${label} · ${esc(episode.t)}" title="${esc(episode.t)}">${direction === "prev" ? "← Назад" : "Дальше →"}</button>` : "";
+    const nav = previous || next ? `<nav class="story-nav" aria-label="Эпизоды повести">${button(previous, "Предыдущий эпизод", "prev")}${button(next, "Следующий эпизод", "next")}</nav>` : "";
+    return `${ev.x ? `<div class="story-summary">${paras(ev.x)}</div>` : ""}${nav}`;
+  }
   function caption(ev, sub, kind, routeText) {
     const [c, kn] = KIND[kind] || ["#d8452f", "место события"];
-    const cap = $("#mapcap");
-    cap.style.setProperty("--c", ev.story ? KIND.story[0] : c);
-    cap.innerHTML = `<span class="k">${ev.story ? esc("повесть · " + ev.story) : kn}</span><b>${esc(ev.t)}</b>${esc(sub || "")}${eventContext(ev)}${routeText ? `<div class="r">${esc(routeText)}</div>` : ""}`;
-    cap.scrollTop = 0;
-    cap.classList.remove("off");
+    const route = routeText ? `<div class="r">${esc(routeText)}</div>` : "";
+    const content = ev.story ? route + storyContent(ev) : eventContext(ev) + route;
+    capEl.style.setProperty("--c", ev.story ? KIND.story[0] : c);
+    capEl.classList.toggle("story-caption", Boolean(ev.story));
+    capEl.innerHTML = `<span class="k">${ev.story ? esc("повесть · " + ev.story) : kn}</span><b>${esc(ev.t)}</b>${esc(sub || "")}${content}`;
+    capEl.scrollTop = 0;
+    capEl.classList.remove("off");
+  }
+  function resetScene() {
+    window.FX?.clear();
+    routeL.clearLayers();
+    routeL._badges = [];
+    plateL.clearLayers();
+    lPlateL?.clearLayers();
+    cur = sceneB = lock = cpts = homeV = null;
+    mapEl.classList.remove("stepfocus");
+    lmapEl.classList.remove("stepfocus");
+    useLoupe = false;
+    if (lensPinned) setPinned(false);
+    hideLens();
+    zones([]);
   }
   function showRoute(ev, force) {
     const k = JSON.stringify(ev.r) + ev.t;
     if (k === routeKey && !force) return;
     routeKey = k;
-    routeL.clearLayers(); plateL.clearLayers(); cur = null; sceneB = null; useLoupe = false; zones([]); window.FX?.clear();
-    const kind = ev.k || "war", color = KIND[kind][0];
+    resetScene();
+    const kind = ev.story ? "story" : ev.k || "war", color = KIND[kind][0];
     const pts = [];
     ev.r.forEach(n => { const ll = geo(n); if (ll && !(pts.length && pts[pts.length - 1].ll + "" === ll + "")) pts.push({n, ll}); });
-    pts.forEach((p, i) => city(p.n, i === 0 || i === pts.length - 1).addTo(routeL));
+    pts.forEach((p, i) => city(p.n, i === 0 || i === pts.length - 1, false, false, ev.story).addTo(routeL));
     hotLL = pts.map(p => p.ll); dedupe();
     if (pts.length >= 2) {
       let line = [];
       for (let i = 0; i < pts.length - 1; i++) line = line.concat(curve(pts[i].ll, pts[i + 1].ll, i % 2 ? -.15 : .15));
       L.polyline(line, {color: "#000", weight: 7, opacity: .35, interactive: false}).addTo(routeL);
-      const pl = L.polyline(line, {color, weight: 3.5, opacity: .95, interactive: false, dashArray: kind === "story" ? "8 7" : null, className: kind === "story" ? "" : "route-line"}).addTo(routeL);
+      const pl = L.polyline(line, {color, weight: 3.5, opacity: .95, interactive: false, dashArray: kind === "story" ? "8 7" : null, className: kind === "story" ? "story-route" : "route-line"}).addTo(routeL);
       const path = pl.getElement();
       if (path && kind !== "story") path.setAttribute("pathLength", 1);
       const a = map.latLngToContainerPoint(line[line.length - 2]), b = map.latLngToContainerPoint(line[line.length - 1]);
       const ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI + 90;
       L.marker(line[line.length - 1], {interactive: false, icon: L.divIcon({className: "", iconSize: [16, 16], iconAnchor: [8, 8],
-        html: `<div class="arrowhead" style="--c:${color};transform:rotate(${ang}deg)"></div>`})}).addTo(routeL);
+        html: `<div class="arrowhead${ev.story ? " story-arrow" : ""}" style="--c:${color};transform:rotate(${ang}deg)"></div>`})}).addTo(routeL);
     }
     caption(ev, [ev.d, ev.loc].filter(Boolean).join(" · "), kind, ev.r.join(" → "));
     fitEvent();
   }
   function focusPlace(ev) {
     const ll = geo(ev.p);
-    if (!ll) { clearRoute(); return; }
+    if (!ll && !ev.story) { clearRoute(); return; }
     const k = "p:" + ev.p + ev.t;
     if (k === routeKey) return;
     routeKey = k;
-    routeL.clearLayers(); plateL.clearLayers(); cur = null; sceneB = null; useLoupe = false; zones([]);
-    city(ev.p, true).addTo(routeL);
-    hotLL = [ll]; dedupe();
+    resetScene();
+    if (ll) city(ev.p, true, false, false, ev.story).addTo(routeL);
+    hotLL = ll ? [ll] : []; dedupe();
     caption(ev, [ev.d, ev.loc || ev.p].filter(Boolean).join(" · "), null, "");
     fitEvent();
   }
-  function clearRoute() { window.FX?.clear(); sceneB = null; cur = null; cpts = null; homeV = null; plateL.clearLayers(); useLoupe = false; if (lensPinned) setPinned(false); hideLens(); routeKey = ""; hotLL = []; zones([]); dedupe(); routeL.clearLayers(); routeL._badges = []; $("#mapcap").classList.add("off"); }
+  function clearRoute() {
+    resetScene();
+    routeKey = ""; hotLL = [];
+    dedupe();
+    capEl.classList.add("off");
+  }
   let zoneOn = [];
   function zones(list) { zoneOn.forEach(n => hl(polys[n], false)); zoneOn = list.filter(n => polys[n]); zoneOn.forEach(n => hl(polys[n], true)); }
   // Сцена: несколько пронумерованных стрелок по очереди, действующие лица у своих городов, заметки.
@@ -363,8 +396,6 @@ window.MAP = (() => {
     const at = pl => byPl[pl] = byPl[pl] || {who: [], pin: []};
     who.forEach(w => geo(w[1]) && at(w[1]).who.push(w));
     if (full) pins.forEach(p => geo(p[0]) && at(p[0]).pin.push(p[1]));
-    plateCities = new Set(Object.keys(byPl).filter(pl => byPl[pl].who.length));
-    hideSeats();
     Object.entries(byPl).forEach(([pl, g]) => {
       const nm = w => w[4] && window.KINUI?.P[w[4]] ? `<a class="pp" data-p="${w[4]}">${esc(w[0])}</a>` : esc(w[0]);
       const head = full ? g.who.map(w => `<b>${nm(w)}${w[2] ? ` <em>${esc(w[2])}</em>` : ""}</b>`).join("")
@@ -376,10 +407,11 @@ window.MAP = (() => {
         + (allp.length ? `<div class="tp">${allp.map(p => "• " + esc(p[1])).join("<br>")}</div>` : "");
       // одна и та же табличка на общей карте и в лупе; где не влезает — прячется
       [plateL, useLoupe ? lPlateL : null].forEach(layer => layer && L.marker(geo(pl), {zIndexOffset: 900, icon: L.divIcon({className: "", iconSize: [0, 0],
-        html: `<div class="pole"></div><div class="who${full ? " full" : ""}">${head}${evs}</div>`})})
+        html: `<div class="pole"></div><div class="who${full ? " full" : ""}" data-c="${esc(pl)}">${head}${evs}</div>`})})
         .bindTooltip(tip, {className: "ttip", direction: "auto", offset: [14, -24]}).addTo(layer));
     });
-    requestAnimationFrame(() => { declutter(mapEl); if (useLoupe) declutter(lmapEl); });
+    scheduleLabels();
+    if (useLoupe) requestAnimationFrame(() => declutter(lmapEl));
   }
   function focusStep(i) {
     if (!cur) return;
@@ -434,7 +466,7 @@ window.MAP = (() => {
     capEl.style.setProperty("--c", "var(--gold2)");
     capEl.innerHTML = `<b>${esc(ev.t)}</b><span class="cd">${esc(ev.d)}</span>${eventContext(ev)}${steps ? `<ol class="steps">${steps}</ol>` : ""}`;
     capEl.scrollTop = 0;
-    capEl.classList.remove("off");
+    capEl.classList.remove("off", "story-caption");
     fitEvent();
   }
   // Вид меняется только на границе эпохи; внутри эпохи карта стоит и лишь расширяется, если маршрут не влез.
@@ -468,43 +500,69 @@ window.MAP = (() => {
       const r = el.firstElementChild?.getBoundingClientRect(); if (!r) return;
       el.style.visibility = hot.some(q => r.left < q.right && r.right > q.left && r.top < q.bottom && r.bottom > q.top) ? "hidden" : "";
     });
+    scheduleLabels();
   }
   map.on("zoomend", dedupe);
-  // Лица и заметки сцены не должны налезать друг на друга и на жёлтые подписи: раздвигаем по вертикали.
-  // Таблички не налезают ни на что: пробуем места над городом, под ним и сбоку; обходим подписи, номера шагов
-  // и панели поверх карты. Свободного места нет — табличка прячется (её содержимое есть в подсказке города).
-  function declutter(box = mapEl) {
-    const mb = box.getBoundingClientRect();
-    const els = [...box.querySelectorAll(".who")];
-    els.forEach(e => { e.style.translate = ""; e.style.visibility = ""; });
-    const vis = e => e.offsetParent && getComputedStyle(e).visibility !== "hidden" && (e.closest(".leaflet-marker-icon")?.style.visibility || "") !== "hidden";
-    const placed = [...box.querySelectorAll(".lbl.city, .lbl.big, .lbl.threatlbl, .stepn")].filter(vis).map(e => e.getBoundingClientRect())
-      .concat((box === mapEl ? ["#mapcap:not(.off)", "#legend", ".mapyear", ".mapnote"] : []).map(q => document.querySelector(q)).filter(Boolean).map(e => e.getBoundingClientRect()));
-    const area = (r, q) => Math.max(0, Math.min(r.right, q.right + 2) - Math.max(r.left, q.left - 2)) * Math.max(0, Math.min(r.bottom, q.bottom + 2) - Math.max(r.top, q.top - 2));
-    els.forEach(e => {
-      const r = e.getBoundingClientRect(), h = r.height, sx = r.width / 2 + 14, below = h + 22;
-      const C = [];
-      [0, -(h + 3), below, -2 * (h + 3), below + h + 3].forEach(dy => [0, sx, -sx].forEach(dx => C.push([dx, dy])));
-      C.sort((a, b) => Math.hypot(a[0], a[1] * 1.3) - Math.hypot(b[0], b[1] * 1.3));
-      let best = null, bs = Infinity;
-      for (const [dx, dy] of C) {
-        const q = {left: r.left + dx, right: r.right + dx, top: r.top + dy, bottom: r.bottom + dy};
-        const out = Math.max(0, mb.left + 4 - q.left) + Math.max(0, q.right - mb.right + 4) + Math.max(0, mb.top + 4 - q.top) + Math.max(0, q.bottom - mb.bottom + 4);
-        const sc = placed.reduce((s, p) => s + area(q, p), 0) + out * 400;
-        if (sc < bs) { bs = sc; best = [dx, dy]; }
-        if (!sc) break;
+  const labelPanels = ["#mapcap:not(.off)", "#legend", ".mapyear", ".mapnote", "#tools", "#keyhelp"];
+  const visible = el => el.getClientRects().length && getComputedStyle(el).visibility !== "hidden";
+  const overlaps = (a, b) => a.left < b.right + 2 && a.right > b.left - 2 && a.top < b.bottom + 2 && a.bottom > b.top - 2;
+  function placeLabel(el, bounds, placed, seat) {
+    const r = el.getBoundingClientRect(), {width, height} = r;
+    const offsets = seat
+      ? [[0, 0], [-9 - width / 2, 9], [-width - 18, 0], [0, -height - 22], [-width - 18, -height - 22], [-9 - width / 2, -height - 26]]
+      : [0, -height - 3, height + 22, -2 * (height + 3), 2 * height + 25].flatMap(dy => [0, width / 2 + 14, -width / 2 - 14].map(dx => [dx, dy]))
+        .sort((a, b) => Math.hypot(a[0], a[1] * 1.3) - Math.hypot(b[0], b[1] * 1.3));
+    const pole = el.previousElementSibling;
+    for (const [dx, dy] of offsets) {
+      const q = {left: r.left + dx, right: r.right + dx, top: r.top + dy, bottom: r.bottom + dy};
+      if (q.left < bounds.left + 4 || q.top < bounds.top + 4 || q.right > bounds.right - 4 || q.bottom > bounds.bottom - 4 || placed.some(p => overlaps(q, p))) continue;
+      el.style.translate = `${dx}px ${dy}px`;
+      if (!seat || dx || dy) {
+        const anchor = el.parentElement.getBoundingClientRect();
+        const x = Math.max(q.left, Math.min(anchor.left, q.right)) - anchor.left;
+        const y = Math.max(q.top, Math.min(anchor.top, q.bottom)) - anchor.top;
+        pole.style.width = Math.hypot(x, y) + "px";
+        pole.style.transform = `rotate(${Math.atan2(y, x)}rad)`;
+        pole.style.visibility = "";
       }
-      if (bs > 0) { e.style.visibility = "hidden"; e.previousElementSibling.style.visibility = "hidden"; return; }
-      e.previousElementSibling.style.visibility = "";
-      e.style.translate = `${best[0]}px ${best[1]}px`;
-      const pole = e.previousElementSibling, top = -10 - h + best[1], bot = -10 + best[1];
-      const x = best[0], y = bot <= 0 ? bot : top >= 0 ? top : 0; // от точки города к ближнему краю таблички
-      pole.style.width = Math.hypot(x, y) + "px";
-      pole.style.transform = `rotate(${Math.atan2(y, x)}rad)`;
-      placed.push({left: r.left + best[0], right: r.right + best[0], top: r.top + best[1], bottom: r.bottom + best[1]});
+      placed.push(q);
+      return true;
+    }
+    return false;
+  }
+  function declutter(box = mapEl) {
+    const bounds = box.getBoundingClientRect();
+    const who = [...box.querySelectorAll(".who")], seats = [...box.querySelectorAll(".seat")];
+    [...who, ...seats].forEach(el => {
+      el.classList.remove("compact");
+      el.style.translate = "";
+      el.style.visibility = "";
+      el.previousElementSibling.style.visibility = "hidden";
+    });
+    const panels = box === mapEl ? labelPanels.map(q => $(q)).filter(Boolean) : [];
+    const placed = [...box.querySelectorAll(".lbl, .cdot, .stepn, .leaflet-control"), ...panels].filter(visible).map(el => el.getBoundingClientRect());
+    const visiblePeople = new Set();
+    who.filter(visible).forEach(el => {
+      if (!placeLabel(el, bounds, placed, false)) { el.style.visibility = "hidden"; return; }
+      el.querySelectorAll("[data-p]").forEach(a => visiblePeople.add(`${el.dataset.c}|${a.dataset.p}`));
+    });
+    seats.filter(visible).forEach(el => {
+      if (visiblePeople.has(`${el.dataset.c}|${el.dataset.p}`)) { el.style.visibility = "hidden"; return; }
+      if (placeLabel(el, bounds, placed, true)) return;
+      el.classList.add("compact");
+      if (!placeLabel(el, bounds, placed, true)) el.style.visibility = "hidden";
     });
   }
-  map.on("zoomend moveend", () => requestAnimationFrame(() => declutter(mapEl)));
+  let labelFrame = 0;
+  function scheduleLabels() {
+    if (labelFrame) return;
+    labelFrame = requestAnimationFrame(() => { labelFrame = 0; declutter(mapEl); });
+  }
+  map.on("moveend", scheduleLabels);
+  if (window.ResizeObserver) {
+    const observer = new ResizeObserver(scheduleLabels);
+    [capEl, $("#legend"), $(".mapyear"), $("#keyhelp")].filter(Boolean).forEach(el => observer.observe(el));
+  }
 
   // Эпоха: главные центры (золотые кольца) и главная угроза (красный пунктир).
   function epoch(y) {
@@ -545,7 +603,7 @@ window.MAP = (() => {
   function back() { if (!homeV) return false; map.flyTo(homeV.c, homeV.z, {duration: .9}); homeV = null; return true; }
   function resetView() { if (back()) return; eraKey = null; viewB = null; eraView(curYear ?? 900); }
   function pickStep(i) { if (!cur) return false; if (i == null) { if (lock == null) return false; clickStep(lock); return true; } if (i < cur.ar.length) clickStep(i); return true; }
-  function refit() { cpts = null; map.invalidateSize(); if (lmap) lmap.invalidateSize(); requestAnimationFrame(() => declutter(mapEl)); }
+  function refit() { cpts = null; map.invalidateSize(); if (lmap) lmap.invalidateSize(); scheduleLabels(); }
   return {setYear, showRoute, showScene, focusPlace, clearRoute, highlight, eraView, geo, map,
     resetView, pickStep, refit, unpinLens: () => { if (lensPinned) setPinned(false); hideLens(); }};
 })();

@@ -5,6 +5,7 @@
 window.PRIVER = (() => {
   const U = window.KINUI, P = U.P, esc = U.esc, FAME = window.FAME || {}, LINKS = window.LINKS || [];
   const {Y0, Y1} = window.RIVER;
+  const officesByPerson = window.FLOWS.officesByPerson;
   const NS = "http://www.w3.org/2000/svg";
   const tl = document.getElementById("tl");
   let svg = null, bar = null, faces = null, pcol = null, all = false, sel = null, drawn = {}, tip = null;
@@ -40,18 +41,23 @@ window.PRIVER = (() => {
   // Keep lifelines within the timeline's date range.
   const clampL = (a, b) => { a = Math.round(Math.max(Math.min(a, Y1 - 4), Y0)); return [a, Math.round(Math.min(Math.max(b, a + 3), Y1))]; };
   function life(id) {
-    if (memo[id]) return memo[id];
+    if (id in memo) return memo[id];
     const p = P[id], s = p.s || [];
+    const offices = officesByPerson[id] || [];
     let a = p.by;
     // без дат вовсе — годы по связям из книги; нет и их — человека на реке нет
-    if (a == null && p.y == null && !s.length && !p.f) {
+    if (a == null && p.y == null && !s.length && !p.f && !offices.length) {
       const ys = LINKS.filter(l => l.a === id || l.b === id).map(l => l.y);
       if (ys.length) return memo[id] = clampL(Math.min(...ys) - 12, Math.max(...ys) + 4);
       const h = (p.sp || []).find(x => P[x] && (P[x].by || P[x].y || (P[x].s || []).length)); // жена без дат — рядом с мужем
       return memo[id] = h && life(h) ? clampL(life(h)[0] + 5, life(h)[1]) : null;
     }
-    if (a == null) { const f = p.f && P[p.f] && life(p.f); a = s.length ? Math.min(...s.map(x => x[1])) - 18 : f ? f[0] + 25 : p.y - 40; }
-    let b = p.y ?? (s.length ? Math.max(...s.map(x => x[2])) : a + 50);
+    if (a == null) {
+      const f = p.f && P[p.f] && life(p.f);
+      a = s.length ? Math.min(...s.map(x => x[1])) - 18 : offices.length ? Math.min(...offices.map(r => r.from)) : f ? f[0] + 25 : p.y - 40;
+    }
+    let b = p.y ?? (s.length ? Math.max(...s.map(x => x[2])) : offices.length ? Math.max(...offices.map(r => r.to)) : a + 50);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return memo[id] = null;
     if (b <= a) b = a + 3;
     return memo[id] = clampL(a, b);
   }
@@ -59,7 +65,7 @@ window.PRIVER = (() => {
   const w = id => FAME[id]?.w || 1;
   // при зуме видны все, кто жил в окне его лет; иначе — главные
   const inWin = id => win && life(id) && life(id)[1] >= win[0] + 8 && life(id)[0] <= win[1] - 8;
-  const shown = id => !!life(id) && (all || w(id) >= 2 || id === sel || inWin(id) || lv() >= 2);
+  const shown = id => !P[id].story && !!life(id) && (all || w(id) >= 2 || id === sel || inWin(id) || lv() >= 2);
   // ближняя родня и те, с кем его связала книга: у них на зуме лица
   function kinOf(id) {
     const p = P[id], k = new Set([id]);
@@ -97,7 +103,7 @@ window.PRIVER = (() => {
         else if (s.length && f) r = at(f, y);
         else if (!s.length && h && !U.isRurik(id)) r = at(h, y);
         else if (s.length) r = CITY[s[0][0]];
-        else r = HOME[FAME[id]?.home] || (U.isRurik(id) && f ? at(f, y) : "kie");
+        else r = HOME[FAME[id]?.home] || officesByPerson[id]?.[0]?.flow || p.flows?.[0] || (U.isRurik(id) && f ? at(f, y) : "kie");
       }
       return m[k] = r;
     };
@@ -353,7 +359,7 @@ window.PRIVER = (() => {
       const l = e.target.closest(".lk");
       // связь — приблизить реку к её году, прямо под курсором
       if (l) { const L = LINKS[+l.dataset.i]; zoomTo(Math.max(zf, LV[2]), L.y, e.clientY, +l.querySelector("circle").getAttribute("cx")); return; }
-      const ev = e.target.closest(".evm"); if (ev) { window.RIVERAPI.mode(false); window.RIVERAPI.goTo(ev.dataset.ev); return; }
+      if (e.target.closest(".evm")) return;
       const g = e.target.closest(".pn, .nm"); if (g) window.CARD.open(g.dataset.id);
     });
     bar.addEventListener("click", e => {
@@ -427,8 +433,8 @@ window.PRIVER = (() => {
     const A = window.RIVERAPI, g = A.geom(), yy = Math.round(Math.max(Y0, Math.min(Y1, y)));
     const key = yy + ":" + g.rw; if (ln.dataset.k === key) return; ln.dataset.k = key;
     const b = A.bands(yy), off = bar.getBoundingClientRect().left - tl.getBoundingClientRect().left;
-    ln.innerHTML = b.filter(q => (q.f1 - q.f0) * g.rw > 34 && LANE[q.id]).map(q =>
-      `<i style="left:${(g.rx + q.f0 * g.rw - off).toFixed(0)}px;width:${((q.f1 - q.f0) * g.rw).toFixed(0)}px;--c:${q.color}">${LANE[q.id]}</i>`).join("");
+    ln.innerHTML = b.filter(q => (q.f1 - q.f0) * g.rw > 34).map(q =>
+      `<button type="button" data-flow="${q.id}" title="${esc(q.name)}" style="left:${(g.rx + q.f0 * g.rw - off).toFixed(0)}px;width:${((q.f1 - q.f0) * g.rw).toFixed(0)}px;--c:${q.color}">${esc(LANE[q.id] || q.name)}</button>`).join("");
   }
-  return {draw, focus, mark, now, scale, crowd, zoomed: () => !!zoom};
+  return {draw, focus, mark, now, scale, crowd, hasLife: id => Boolean(P[id] && !P[id].story && life(id)), zoomed: () => !!zoom};
 })();

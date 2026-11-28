@@ -3,11 +3,24 @@
 window.TREE = (() => {
   const U = window.KINUI, P = U.P, esc = U.esc;
   const view = document.getElementById("view");
+  const back = document.getElementById("back-to-river");
+  const origin = new URLSearchParams(location.search);
   let cur = null;
 
+  function syncBack(id) {
+    const params = new URLSearchParams();
+    for (const key of ["flow", "y"]) if (origin.has(key)) params.set(key, origin.get(key));
+    params.set("p", id);
+    if (!params.has("y") && P[id].s?.length) params.set("y", P[id].s[0][1]);
+    back.href = "index.html?" + params;
+  }
   function mark(id) {
     if (!id || !P[id] || id === cur) return;
     cur = id;
+    syncBack(id);
+    const title = U.isRurik(id) ? "Древо Рюриковичей" : "Древо · " + P[id].n;
+    document.querySelector("header h1").textContent = title;
+    document.title = title;
     view.innerHTML = window.KINTREE.html(id, true);
     view.classList.remove("in"); void view.offsetWidth; view.classList.add("in");
     setTimeout(draw, 450); // после появления рядов

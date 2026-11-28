@@ -7,14 +7,22 @@ window.CARD = (() => {
   function render(id) {
     const p = P[id];
     const br = U.B[p.b];
-    const seats = (p.s || []).length ? `<div class="csec seats">${p.s.map(([c, f, t]) => `<span><b>${esc(c)}</b> ${f}–${t}</span>`).join("")}</div>` : "";
+    const story = [p.collection, p.story].filter(Boolean).map(esc).join(" · ");
+    const events = window.FLOWS?.byPerson[id] || [];
+    const eventList = events.length ? `<details class="flow-card-events"><summary>Эпизоды в реке (${events.length})</summary><ul>${events.map(({event, role}) =>
+      `<li><a href="#e=${encodeURIComponent(event.t)}" data-ev="${esc(event.t)}">${esc(event.t)}</a> · ${esc(role)}</li>`).join("")}</ul></details>` : "";
+    const source = p.src ? `<p class="flow-card-source">${/^https?:\/\//.test(p.src) ? `<a href="${esc(p.src)}" target="_blank" rel="noopener">Источник</a>` : esc(p.src)}</p>` : "";
+    const dates = y => y < 0 ? -y + " до н. э." : y;
+    const periods = [...(p.s || []).map(([office, from, to]) => ({office, from, to})), ...window.PEOPLE.OFFICES.filter(r => r.id === id)];
+    const seats = periods.length ? `<div class="csec seats">${periods.map(({office, from, to, note, src}) =>
+      `<span><b>${esc(office)}</b> ${dates(from)}${from === to ? "" : "–" + dates(to)}${note ? `<i> · ${esc(note)}</i>` : ""}${src && /^https?:\/\//.test(src) ? ` <a href="${esc(src)}" target="_blank" rel="noopener" title="Источник дат">↗</a>` : ""}</span>`).join("")}</div>` : "";
     el.innerHTML = `<div class="cinfo"><div class="ch hasimg" style="--b:${U.col(id)}"><span class="cimg">${window.KINTREE.face(id)}</span>
         <div class="cbtn">${hist.length ? `<button data-c="back" title="назад">←</button>` : ""}<button data-c="close" title="закрыть (Esc)">×</button></div>
-        ${br ? `<span class="cbr">${esc(br.n)}</span>` : ""}
+        ${br ? `<span class="cbr">${story || esc(br.n)}</span>` : ""}
         <h3>${esc(p.n)}</h3><div class="cy">${esc(U.years(id))}${p.q ? ` <span title="даты или родство спорны">· ?</span>` : ""}</div>
         ${p.d ? `<div class="cd">${esc(p.d)}</div>` : ""}</div>
-      ${window.FAME?.[id]?.why ? `<p class="why"><i>почему важен</i>${esc(window.FAME[id].why)}</p>` : ""}${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}${seats}
-      <div class="cact">${window.PRIVER && !pmode() ? `<button data-c="river">в реке личностей</button>` : ""}${U.isRurik(id) && !window.TREE ? `<a class="tbtn" href="tree.html#${id}" target="kin-tree">полное древо ↗</a>` : ""}</div></div>
+      ${window.FAME?.[id]?.why ? `<p class="why"><i>почему важен</i>${esc(window.FAME[id].why)}</p>` : ""}${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ""}${seats}${source}${eventList}
+      <div class="cact">${!pmode() && window.PRIVER?.hasLife(id) ? `<button data-c="river">в реке личностей</button>` : ""}${!window.TREE ? `<a class="tbtn" href="${esc(window.FLOW_VIEW.treeUrl(id))}" target="kin-tree">открыть древо ↗</a>` : ""}</div></div>
       <div class="csec ktbox">${window.KINTREE.html(id)}</div>`;
     el.scrollTop = 0;
     requestAnimationFrame(() => tree());
@@ -67,6 +75,10 @@ window.CARD = (() => {
     window.PRIVER?.focus(null);
     return true;
   }
+  function syncTreeLink() {
+    const link = curId && el.querySelector(".tbtn");
+    if (link && window.FLOW_VIEW) link.href = window.FLOW_VIEW.treeUrl(curId);
+  }
   el.addEventListener("click", e => {
     const b = e.target.closest("[data-c]");
     if (!b) return;
@@ -94,5 +106,5 @@ window.CARD = (() => {
     tip.style.left = Math.min(r.left, innerWidth - 330) + "px"; tip.style.top = (r.bottom + 8 > innerHeight - 150 ? r.top - 8 - 120 : r.bottom + 8) + "px";
     tip.classList.add("on");
   });
-  return {open, close, get id() { return curId; }};
+  return {open, close, syncTreeLink, get id() { return curId; }};
 })();
